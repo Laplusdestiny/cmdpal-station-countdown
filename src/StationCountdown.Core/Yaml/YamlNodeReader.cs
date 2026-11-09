@@ -1,4 +1,3 @@
-using System.Globalization;
 using YamlDotNet.Core;
 using YamlDotNet.RepresentationModel;
 
@@ -12,11 +11,21 @@ internal sealed class YamlNodeReader
 {
     private readonly List<ConfigError> _errors = [];
 
-    public IReadOnlyList<ConfigError> Errors => _errors;
+    /// <summary>集めたエラーを行番号の順に返す（同じ行の中では見つけた順）。</summary>
+    public IReadOnlyList<ConfigError> Errors => _errors.OrderBy(e => e.Line).ToArray();
 
     public bool HasErrors => _errors.Count > 0;
 
     public void Error(YamlNode? node, string message) => _errors.Add(new ConfigError(LineOf(node), message));
+
+    /// <summary>検証ルールの結果（null なら問題なし）を、<paramref name="node"/> の行のエラーとして記録する。</summary>
+    public bool Check(YamlNode node, string? error)
+    {
+        if (error is null)
+            return true;
+        Error(node, error);
+        return false;
+    }
 
     public static int LineOf(YamlNode? node) => node is null ? 0 : ToLine(node.Start);
 
@@ -95,34 +104,6 @@ internal sealed class YamlNodeReader
 
     public string? GetScalar(YamlMappingNode map, string key, bool required)
         => GetScalarNode(map, key, required)?.Value;
-
-    /// <summary>空文字を許さない文字列。</summary>
-    public string? GetNonEmptyString(YamlMappingNode map, string key, bool required)
-    {
-        var node = GetScalarNode(map, key, required);
-        if (node is null)
-            return null;
-        if (string.IsNullOrWhiteSpace(node.Value))
-        {
-            Error(node, $"{key} が空です。");
-            return null;
-        }
-        return node.Value;
-    }
-
-    public int? GetInt(YamlMappingNode map, string key, bool required, int min, int max)
-    {
-        var node = GetScalarNode(map, key, required);
-        if (node is null)
-            return null;
-        if (!int.TryParse(node.Value, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out var value)
-            || value < min || value > max)
-        {
-            Error(node, $"{key} は {min}〜{max} の整数で書いてください: {node.Value}");
-            return null;
-        }
-        return value;
-    }
 
     public YamlSequenceNode? GetSequence(YamlMappingNode map, string key, bool required)
     {
