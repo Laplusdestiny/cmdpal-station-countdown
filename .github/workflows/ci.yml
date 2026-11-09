@@ -29,3 +29,8 @@ jobs:
           TZ: America/Los_Angeles
       - name: Test Importers
         run: dotnet test --project tests/StationCountdown.Importers.Tests
+      - name: Publish trimmed probe (spec §10 V4・V5)
+        # トリミングの警告はすべてエラーになる（tools/TrimProbe/TrimProbe.csproj）
+        run: dotnet publish tools/TrimProbe -c Release -r linux-x64 -o out/TrimProbe
+      - name: Run trimmed probe
+        run: out/TrimProbe/TrimProbe
