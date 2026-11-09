@@ -22,5 +22,10 @@ jobs:
           global-json-file: global.json
       - name: Test Core
         run: dotnet test --project tests/StationCountdown.Core.Tests
+      - name: Test Core in a non-JST time zone
+        # 計算が PC のタイムゾーンに依存しないことを確かめる（Review Focus 2）。
+        run: dotnet test --project tests/StationCountdown.Core.Tests --no-build
+        env:
+          TZ: America/Los_Angeles
       - name: Test Importers
         run: dotnet test --project tests/StationCountdown.Importers.Tests
