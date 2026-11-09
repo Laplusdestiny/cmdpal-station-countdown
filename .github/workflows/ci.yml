@@ -34,3 +34,13 @@ jobs:
         run: dotnet publish tools/TrimProbe -c Release -r linux-x64 -o out/TrimProbe
       - name: Run trimmed probe
         run: out/TrimProbe/TrimProbe
+
+  extension:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Build extension (x64, Release)
+        run: dotnet build src/StationCountdown.Extension -c Release -p:Platform=x64
