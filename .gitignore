@@ -193,6 +193,8 @@ publish/
 # Note: Comment the next line if you want to checkin your web deploy settings,
 # but database connection strings (with potential passwords) will be unencrypted
 *.pubxml
+# 拡張機能の publish プロファイル（SelfContained・RuntimeIdentifier を決める。接続文字列などは含まない）はコミットする
+!src/StationCountdown.Extension/Properties/PublishProfiles/*.pubxml
 *.publishproj
 
 # Microsoft Azure Web App publish settings. Comment the next line if you want to
