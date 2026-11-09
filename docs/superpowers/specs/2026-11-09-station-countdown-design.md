@@ -56,7 +56,7 @@ StationCountdown.sln
 │   ├─ Timetables/  TimetableFile（timetables/{id}.yaml の読み書き・検証）
 │   ├─ Calendar/    HolidayCalendar（内閣府 CSV の解析）, ServiceDayResolver
 │   ├─ Countdown/   NextDepartureCalculator, CountdownFormatter
-│   └─ Yaml/        YamlDotNet 用の静的コンテキスト
+│   └─ Yaml/        YamlDotNet の表現モデルを扱う共通ヘルパ
 ├─ src/StationCountdown.Importers     net10.0（OS 非依存）
 │   ├─ ITimetableImporter
 │   └─ Hankyu/      HankyuStationPageParser, HankyuTimetableParser, HankyuImporter
@@ -75,7 +75,16 @@ StationCountdown.sln
 
 - 依存の向きは `Extension → Importers → Core` だけ。`Core` と `Importers` は Windows に依存しないので、Linux や CI でテストできる。
 - 一般公開版（#4）では、`Extension` から `Importers` への参照を外し、`hankyu` 型の駅を無効にしてビルドできるようにする。MSBuild のプロパティ `IncludeImporters`（既定は `true`）で切り替える。
-- YAML の処理には YamlDotNet を使う。AOT 対応のため、`Vecc.YamlDotNet.Analyzers.StaticGenerator` で静的コンテキストを生成する。
+- YAML の処理には YamlDotNet を使う。読み書きには表現モデル（`YamlStream`、`YamlMappingNode` など）を使い、ノードを 1 つずつたどる。リフレクションを使わないので AOT やトリミングと両立でき、検証エラーには `node.Start.Line` で行番号を付けられる。
+- **JSON への切り替え条件**: 実装やテストの中で YAML の実現が難しいと判断したら、JSON に切り替える。判断の目安は次のとおり。
+  - V4（§10）が失敗し、YamlDotNet の範囲で解決できない
+  - YamlDotNet に、回避できない不具合や制約が見つかる
+
+  切り替えるときは人に報告し、次のように変更する。
+  - 設定は `stations.json`、時刻表は `timetables/{id}.json` にする。
+  - 読み書きは `System.Text.Json` のソース生成（`JsonSerializerContext`）で行う。手で書くファイルのために、読み込み時はコメントを読み飛ばす。
+  - 時刻表は 1 本 1 行の文字列（`"05:00 普通 宝塚"`）のまま使う。
+  - 検証エラーの場所は、行番号ではなく JSON のパスで示す（例: `stations[0].walkMinutes`）。
 
 ## 4. データ
 
@@ -317,12 +326,13 @@ services:
 | V1 | 8 時間以上放置した後も更新が続くか | 表示が最新の時刻のまま |
 | V2 | 画面ロック・解除の後 | バンドが表示され、更新も続く |
 | V3 | スリープからの復帰の後 | 同上 |
-| V4 | YamlDotNet の静的コンテキストで、Release ビルド（トリミングあり）が動くか | 読み書きのラウンドトリップが成功する |
+| V4 | YamlDotNet の表現モデルを使った読み書きが、Release ビルド（トリミングあり）で動くか | 読み書きのラウンドトリップが成功する |
 | V5 | AngleSharp を使った Release ビルド（トリミングあり）が動くか | fixture の解析が成功する |
 | V6 | `OnLoad` 方式で、表示されているかどうかを判定できるか | ピン留めを外すとタイマーが止まる |
 
 - V1〜V3 で止まる場合は、`CoAddRefServerProcess` でプロセスを維持する方法を試す。それでも駄目なら、既知の制限として README に書く（PowerToys#50367）。
-- V4・V5 が駄目な場合は、代わりの手段を検討する。YAML は自前の最小限のパーサー（§4 の形式に限る）、HTML は正規表現での解析。
+- V4 が駄目な場合は、§3 の切り替え条件に従って JSON に切り替える。
+- V5 が駄目な場合は、AngleSharp をやめて正規表現で解析する。
 
 ## 11. ライセンスと表示
 

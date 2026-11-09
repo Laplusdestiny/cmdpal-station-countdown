@@ -15,7 +15,7 @@
 - `Core` と `Importers` のターゲットは `net10.0`。`<IsAotCompatible>true</IsAotCompatible>` を付け、`<TreatWarningsAsErrors>true</TreatWarningsAsErrors>` でトリミングや AOT の警告もエラーにする。`Extension` は公式テンプレートの設定（`net10.0-windows10.0.26100.0`、`TargetPlatformMinVersion 10.0.19041.0`、`x64;ARM64`）に従う。
 - パッケージのバージョンは `Directory.Packages.props` でまとめて管理する。`Microsoft.CommandPalette.Extensions` は `0.12.260812002` に固定する。
 - リフレクションに頼るシリアライザーは使わない。YAML は YamlDotNet の `YamlStream`、`YamlMappingNode`、`Emitter` で直接扱い、フォームの入力（JSON）は `System.Text.Json.JsonDocument` で読む。
-  - spec §3 では「静的コンテキスト」を使うことになっているが、この計画では表現モデル（`YamlStream` など）に置き換える。リフレクションを使わないうえ、検証エラーに行番号を付けられるため。
+  - 実装やテストの中で YAML の実現が難しいと判断したら、作業を止めて報告する。報告したら、spec §3 の「JSON への切り替え条件」に従って JSON（`JsonSerializerContext`）に切り替える。独自の YAML パーサーは作らない。
 - JST は `TimeSpan.FromHours(9)` の固定オフセットで扱う。日本には夏時間がないので、spec §5.1 の `Tokyo Standard Time` と同じ結果になる。
 - 時刻の表示は、時をゼロ埋めしない `H:MM` にする（`5:00`、`12:34`、`0:10`）。spec の `{HH:MM}` と `{H:MM}` という表記の揺れは、すべてこの形に統一する。
 - 時刻表データ（阪急・東急の実際のデータ）はコミットしない。テストの fixture は、駅名・時刻とも架空のものだけを使う。
@@ -529,7 +529,9 @@ saturdayHoliday:  06:00 普通 A
 - [ ] **Step 3:** 出力された実行ファイルを動かし、`PROBE OK` が表示されることを確かめる。
 - [ ] **Step 4:** CI に、Step 2 と Step 3 を追加する。
 - [ ] **Step 5:** コミットする（`test: trimmed publish probe for YAML and HTML parsing`）。push して、CI が緑になることを確かめる。
-  - **失敗した場合**は止まって報告する。代わりの手段は spec §10 のとおりで、YAML は自前の最小限のパーサー、HTML は正規表現での解析。どちらにするかは、人に判断してもらう。
+  - **失敗した場合**は、止まって報告する。
+    - YAML の失敗は、spec §3 の「JSON への切り替え条件」に当たる。報告したうえで、Task 2・3・11 を JSON 版に書き換える。テストの名前と期待値はそのまま使い、行番号の検証だけは JSON のパスの検証に置き換える。
+    - HTML の失敗は、Task 8・9 の解析を正規表現に書き換える。
 
 ---
 
