@@ -7,7 +7,7 @@ namespace StationCountdown.Extension.Services;
 /// 毎分 0 秒に、購読しているバンドを更新する（spec §5.6）。タイマーは 1 本だけで、購読者がいないときは止める。
 /// 時刻設定の変更、スリープからの復帰、画面ロックの解除のときは、すぐに更新して次の分境界に予約し直す。
 /// </summary>
-internal sealed class TickService : IDisposable
+internal sealed partial class TickService : IDisposable
 {
     // 分境界の直前にタイマーが早めに発火すると、前の分のまま計算してしまうので、少し後ろにずらす。
     private static readonly TimeSpan BoundaryMargin = TimeSpan.FromMilliseconds(200);

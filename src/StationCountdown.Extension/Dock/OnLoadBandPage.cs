@@ -3,7 +3,7 @@
 // See the LICENSE file in the project root for more information.
 //
 // PowerToys の src/modules/cmdpal/ext/Microsoft.CmdPal.Ext.TimeDate/Pages/OnLoadDynamicListPage.cs を移植した
-// （名前空間とクラス名のみ変更）。
+// （名前空間とクラス名のみ変更。Toolkit の EventHelpers は、同じ動きの SafeEvents に置き換えた）。
 
 using Microsoft.CommandPalette.Extensions;
 using Microsoft.CommandPalette.Extensions.Toolkit;
@@ -89,7 +89,7 @@ internal abstract partial class OnLoadDynamicListPage : Page, IDynamicListPage
 
     protected void RaiseItemsChanged(int totalItems = -1)
     {
-        EventHelpers.Raise(InternalItemsChanged, this, new ItemsChangedEventArgs(totalItems));
+        SafeEvents.Raise(InternalItemsChanged, this, new ItemsChangedEventArgs(totalItems));
     }
 
     protected abstract void Loaded();

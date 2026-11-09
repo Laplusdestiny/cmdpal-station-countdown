@@ -5,6 +5,7 @@
 // PowerToys の src/modules/cmdpal/ExtensionTemplate（Program.cs）をもとにしている。
 
 using Microsoft.CommandPalette.Extensions;
+using Shmuelie.WinRTServer.CsWinRT;
 using StationCountdown.Extension.Services;
 
 namespace StationCountdown.Extension;
