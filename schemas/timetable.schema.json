@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Laplusdestiny/cmdpal-station-countdown/schemas/timetable.schema.json",
+  "title": "Station Countdown timetable",
+  "description": "timetables/{id}.yaml の形式（設計書 §4.3）",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "stationId", "services"],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "stationId": {
+      "description": "ファイル名の {id} と同じ値",
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "maxLength": 64
+    },
+    "fetchedAt": {
+      "description": "取得した日時（例: 2026-11-09T12:00:00+09:00）。file 型の駅では省略してよい",
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}([+-]\\d{2}:\\d{2}|Z)$"
+    },
+    "sourceUrls": {
+      "description": "取得元の URL。file 型の駅では省略してよい",
+      "type": "array",
+      "items": { "type": "string", "format": "uri" }
+    },
+    "services": {
+      "description": "ダイヤ種別ごとの発車時刻。最低 1 つ必要",
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {
+        "enum": ["weekday", "saturday", "holiday", "saturdayHoliday"]
+      },
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "description": "\"HH:MM 種別 行先\"（半角スペース区切り。HH は 00〜29）",
+          "type": "string",
+          "pattern": "^[0-2][0-9]:[0-5][0-9] [^\\s]+ [^\\s]+$"
+        }
+      }
+    }
+  }
+}
