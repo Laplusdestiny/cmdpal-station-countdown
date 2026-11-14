@@ -34,6 +34,27 @@ public class HankyuStationPageParserTests
     }
 
     [Fact]
+    public void Parse_extracts_station_name_from_h1()
+        => Assert.Equal("架空駅", HankyuStationPageParser.Parse(Fixture("hankyu_station_page.html"), PageUrl).StationName);
+
+    [Fact]
+    public void Parse_falls_back_to_title_for_station_name()
+    {
+        var html = Block("架空線", Direction("北方面", "/station/html/a_w.html", "/station/html/a_h.html"))
+            .Replace("<html>", "<html><head><title> 架空台 | 時刻表 構内図 おでかけ情報 | 阪急電鉄</title></head>");
+
+        Assert.Equal("架空台", HankyuStationPageParser.Parse(html, PageUrl).StationName);
+    }
+
+    [Fact]
+    public void Parse_station_name_is_null_when_missing()
+    {
+        var html = Block("架空線", Direction("北方面", "/station/html/a_w.html", "/station/html/a_h.html"));
+
+        Assert.Null(HankyuStationPageParser.Parse(html, PageUrl).StationName);
+    }
+
+    [Fact]
     public void Parse_without_revision_is_not_flagged()
     {
         var html = Block("架空線", Direction("北方面", "/station/html/HK-99_kk_2_w.html", "/station/html/HK-99_kk_2_h.html"));

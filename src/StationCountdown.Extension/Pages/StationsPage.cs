@@ -79,7 +79,7 @@ internal sealed partial class StationsPage : ListPage
             });
         }
 
-        items.AddRange(StationActions.Footer());
+        items.AddRange(_actions.Footer());
         return [.. items];
     }
 }

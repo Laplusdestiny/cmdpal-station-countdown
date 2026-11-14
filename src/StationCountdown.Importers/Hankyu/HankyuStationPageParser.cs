@@ -9,7 +9,8 @@ public sealed record HankyuDirectionLink(string Line, string Direction, Uri Week
 
 /// <param name="Current">現行ダイヤのリンク。</param>
 /// <param name="HasRevisedTimetable">日付付きディレクトリの「ダイヤ改正版」が載っているか。</param>
-public sealed record HankyuStationPage(IReadOnlyList<HankyuDirectionLink> Current, bool HasRevisedTimetable);
+/// <param name="StationName">駅名（例: 岡町）。見つからなければ null。</param>
+public sealed record HankyuStationPage(IReadOnlyList<HankyuDirectionLink> Current, bool HasRevisedTimetable, string? StationName = null);
 
 /// <summary>
 /// 阪急公式サイトの駅ページ（例: <c>umeda.html</c>）を解析する（spec §7.1）。
@@ -66,7 +67,16 @@ public static partial class HankyuStationPageParser
         if (current.Count == 0)
             throw new ImportException($"駅ページに時刻表へのリンクが見つかりません。ページの構造が変わった可能性があります: {pageUrl}");
 
-        return new HankyuStationPage(current, hasRevised);
+        return new HankyuStationPage(current, hasRevised, StationNameOf(document));
+    }
+
+    /// <summary>駅名は <c>h1</c>（例: <c>&lt;h1 data-basename="okamachi"&gt;岡町&lt;/h1&gt;</c>）。なければ title の「 | 」より前。</summary>
+    private static string? StationNameOf(IDocument document)
+    {
+        var name = TextOf(document.QuerySelector("h1"));
+        if (name.Length == 0)
+            name = document.Title?.Split('|', 2)[0].Trim() ?? "";
+        return name.Length > 0 ? name : null;
     }
 
     private static string TextOf(IElement? element) => element?.TextContent.Trim() ?? "";

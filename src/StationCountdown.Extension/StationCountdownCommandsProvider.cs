@@ -3,6 +3,10 @@ using Microsoft.CommandPalette.Extensions.Toolkit;
 using StationCountdown.Extension.Dock;
 using StationCountdown.Extension.Pages;
 using StationCountdown.Extension.Services;
+#if !NO_IMPORTERS
+using StationCountdown.Importers;
+using StationCountdown.Importers.Hankyu;
+#endif
 
 namespace StationCountdown.Extension;
 
@@ -21,6 +25,10 @@ public sealed partial class StationCountdownCommandsProvider : CommandProvider
     private readonly CancellationTokenSource _shutdown = new();
     private readonly StationActions _actions;
     private readonly ICommandItem[] _commands;
+#if !NO_IMPORTERS
+    private readonly HttpClient _importerHttp = ImporterHttp.Create(AppHttp.Version);
+    private readonly RefreshScheduler _scheduler;
+#endif
 
     private readonly Lock _bandsGate = new();
     private ICommandItem[] _bands = [];
@@ -36,7 +44,13 @@ public sealed partial class StationCountdownCommandsProvider : CommandProvider
         _tick = new TickService(_time);
         _holidays.LoadLocal();
         _store = new StationStore(_time);
+#if !NO_IMPORTERS
+        var hankyu = new HankyuImporter(_importerHttp, _time);
+        _scheduler = new RefreshScheduler(_store, [hankyu], _time);
+        _actions = new StationActions(_store, hankyu, _scheduler);
+#else
         _actions = new StationActions(_store);
+#endif
 
         _commands =
         [
@@ -66,6 +80,10 @@ public sealed partial class StationCountdownCommandsProvider : CommandProvider
     internal void Shutdown()
     {
         _shutdown.Cancel();
+#if !NO_IMPORTERS
+        _scheduler.Dispose();
+        _importerHttp.Dispose();
+#endif
         _holidayTimer.Dispose();
         _store.Dispose();
         _tick.Dispose();
