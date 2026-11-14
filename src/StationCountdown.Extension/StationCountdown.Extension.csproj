@@ -117,7 +117,7 @@
       CsWinRT は既定で Windows SDK をレジストリから探す。Windows SDK がなくてもビルドできるよう、
       NuGet の Microsoft.Windows.SDK.NET.Ref に入っている Windows の winmd を使う（バージョンは同じ 10.0.26100）。
     -->
-    <_NuGetWindowsMetadata>$(NuGetPackageRoot)microsoft.windows.sdk.net.ref\$(WindowsSdkPackageVersion)\winmd</_NuGetWindowsMetadata>
+    <_NuGetWindowsMetadata>$([MSBuild]::EnsureTrailingSlash('$(NuGetPackageRoot)'))microsoft.windows.sdk.net.ref\$(WindowsSdkPackageVersion)\winmd</_NuGetWindowsMetadata>
     <CsWinRTWindowsMetadata Condition="'$(CsWinRTWindowsMetadata)' == '' and '$(NuGetPackageRoot)' != '' and Exists('$(_NuGetWindowsMetadata)')">$(_NuGetWindowsMetadata)</CsWinRTWindowsMetadata>
 
     <CsWinRTAotOptimizerEnabled>true</CsWinRTAotOptimizerEnabled>

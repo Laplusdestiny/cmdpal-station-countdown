@@ -55,6 +55,13 @@ if ($certificate.Subject -ne $publisher) {
 Write-Host "証明書: $($certificate.Subject)（拇印 $($certificate.Thumbprint)、期限 $($certificate.NotAfter.ToString('yyyy-MM-dd'))）"
 
 $dotnet = Find-Dotnet10
+
+# signtool.exe は NuGet のパッケージ（Microsoft.Windows.SDK.BuildTools）に入っているので、先に復元する。
+# GitHub Actions の新しいランナーでは、復元するまでパッケージがない。
+& $dotnet restore $ExtensionProject -p:Platform=x64
+if ($LASTEXITCODE -ne 0) {
+    throw "NuGet パッケージの復元に失敗しました（終了コード $LASTEXITCODE）。"
+}
 $signtool = Find-SignTool $dotnet
 Write-Host "dotnet: $dotnet"
 Write-Host "signtool: $signtool"
