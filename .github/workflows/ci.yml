@@ -44,3 +44,6 @@ jobs:
           global-json-file: global.json
       - name: Build extension (x64, Release)
         run: dotnet build src/StationCountdown.Extension -c Release -p:Platform=x64
+      - name: Build extension without importers (x64, Release)
+        # 一般公開版（#4）向けの切り替え。阪急のインポーターを含めずにビルドできることを確かめる
+        run: dotnet build src/StationCountdown.Extension -c Release -p:Platform=x64 -p:IncludeImporters=false

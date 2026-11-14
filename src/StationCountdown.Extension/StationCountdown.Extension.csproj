@@ -83,8 +83,21 @@
     </PackageReference>
   </ItemGroup>
 
-  <ItemGroup>
+  <!--
+    一般公開版（#4）向けの切り替え（spec §3）。-p:IncludeImporters=false でビルドすると、阪急のインポーター
+    （公式サイトからの取り込み）を含めない。その場合、hankyu 型の駅は「時刻表未取得」と表示する。
+  -->
+  <PropertyGroup>
+    <IncludeImporters Condition="'$(IncludeImporters)' == ''">true</IncludeImporters>
+    <DefineConstants Condition="'$(IncludeImporters)' != 'true'">$(DefineConstants);NO_IMPORTERS</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(IncludeImporters)' == 'true'">
     <ProjectReference Include="..\StationCountdown.Importers\StationCountdown.Importers.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(IncludeImporters)' != 'true'">
+    <ProjectReference Include="..\StationCountdown.Core\StationCountdown.Core.csproj" />
   </ItemGroup>
 
   <!--

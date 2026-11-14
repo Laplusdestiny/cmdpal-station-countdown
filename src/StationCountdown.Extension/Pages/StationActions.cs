@@ -75,16 +75,20 @@ internal sealed class StationActions
         },
     ];
 
+#if !NO_IMPORTERS
     private IEnumerable<IContextItem> Refresh(StationConfig station)
     {
-#if !NO_IMPORTERS
         if (_scheduler.CanRefresh(station))
             yield return new CommandContextItem(new RefreshTimetableCommand(station, _scheduler));
+    }
 #else
+    // インポーターを外したビルドでは、再取得のコマンドを出さない。
+    private static IEnumerable<IContextItem> Refresh(StationConfig station)
+    {
         _ = station;
         yield break;
-#endif
     }
+#endif
 
     /// <summary>時刻表ファイルがあれば「時刻表ファイルを開く」（file 型の駅で、手で直すとき用）。</summary>
     private IEnumerable<IContextItem> OpenTimetable(StationConfig station)

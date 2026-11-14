@@ -99,6 +99,9 @@ internal sealed partial class TickService : IDisposable
             ScheduleLocked();
         }
 
+        // 長時間の放置・ロック・スリープのあとも更新が続いているかを、ログで確かめられるようにする（spec §10 の V1〜V3）。
+        Log.Info(string.Create(CultureInfo.InvariantCulture, $"tick (subscribers: {snapshot.Length})"));
+
         foreach (var (_, onTick) in snapshot)
         {
             // 1 つのバンドの例外で、ほかのバンドやタイマーを止めない（spec §8）。

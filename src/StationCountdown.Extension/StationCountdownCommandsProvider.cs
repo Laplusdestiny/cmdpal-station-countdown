@@ -116,10 +116,15 @@ public sealed partial class StationCountdownCommandsProvider : CommandProvider
                     $"{station.Name} {station.DirectionLabel}",
                     onLoaded: () =>
                     {
+                        Log.Info("band loaded: " + station.BandCommandId);
                         _tick.Subscribe(band, band.Refresh);
                         band.Refresh();
                     },
-                    onUnloaded: () => _tick.Unsubscribe(band))).ToArray();
+                    onUnloaded: () =>
+                    {
+                        Log.Info("band unloaded: " + station.BandCommandId);
+                        _tick.Unsubscribe(band);
+                    })).ToArray();
                 _bandItems = items;
                 _bandsKey = key;
                 rebuilt = true;
