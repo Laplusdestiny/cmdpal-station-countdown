@@ -14,7 +14,7 @@
 | `.github/workflows/release.yml` | `v1.2.3` のタグで起動し、テスト → x64 / ARM64 の MSIX のビルドと署名 → zip を Release に添付 |
 | `tools/windows/New-ReleasePackage.ps1` | MSIX のビルド・署名と zip の作成（手元でも動く） |
 | `tools/windows/New-SigningCertificate.ps1` | 署名用の自己署名証明書を作る |
-| `tools/release/` | zip に入れるもの（`install.cmd`、`uninstall.cmd`、`README.txt` など） |
+| `tools/installer/` | zip に入れるもの（`install.cmd`、`uninstall.cmd`、`README.txt` など） |
 | `.github/release-notes.md` | Release の説明文の先頭に入れるインストール手順 |
 
 zip の中身:

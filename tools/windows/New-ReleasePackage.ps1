@@ -106,7 +106,7 @@ finally {
 # 利用者が信頼する公開用の証明書（秘密鍵は含まない）と、インストール用のスクリプト。
 [System.IO.File]::WriteAllBytes((Join-Path $staging 'StationCountdown.cer'),
     $certificate.Export([System.Security.Cryptography.X509Certificates.X509ContentType]::Cert))
-Copy-Item (Join-Path $RepoRoot 'tools\release\*') $staging -Recurse
+Copy-Item (Join-Path $RepoRoot 'tools\installer\*') $staging -Recurse
 
 $zip = Join-Path $OutputDir "StationCountdown-$Version.zip"
 if (Test-Path $zip) { Remove-Item $zip -Force }
