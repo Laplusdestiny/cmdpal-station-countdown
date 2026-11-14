@@ -147,7 +147,8 @@ internal sealed partial class AddHankyuStationForm : FormContent
         if (errors.Count > 0)
             return FormInputs.Reject(string.Join(" / ", errors.Select(e => e.Message)));
 
-        _store.Save(doc);
+        if (_store.TrySave(doc) is { } saveError)
+            return FormInputs.Reject(saveError);
         Log.Info("station added from form: " + station.Id);
         ShowStep1(DefaultUrl);
 

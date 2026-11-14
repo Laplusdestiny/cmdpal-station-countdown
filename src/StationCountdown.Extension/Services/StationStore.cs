@@ -102,6 +102,24 @@ internal sealed partial class StationStore : IDisposable
         Reload();
     }
 
+    /// <summary>
+    /// <see cref="Save"/> と同じだが、失敗しても例外を投げず、利用者に見せるメッセージを返す（成功なら null）。
+    /// エディタが stations.yaml を開いていて書けない場合など。フォームと削除のコマンドから使う。
+    /// </summary>
+    public string? TrySave(StationsDocument doc)
+    {
+        try
+        {
+            Save(doc);
+            return null;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)
+        {
+            Log.Error("failed to save stations.yaml", ex);
+            return "stations.yaml を保存できませんでした: " + ex.Message;
+        }
+    }
+
     /// <summary>設定とすべての駅の時刻表を読み直す。</summary>
     public void Reload()
     {

@@ -27,7 +27,11 @@ internal sealed partial class DeleteStationCommand : InvokableCommand
         IsPrimaryCommandCritical = true,
         PrimaryCommand = new AnonymousCommand(() =>
         {
-            _store.Save(_store.Current.WithStationRemoved(_station.Id));
+            if (_store.TrySave(_store.Current.WithStationRemoved(_station.Id)) is { } error)
+            {
+                new ToastStatusMessage(error).Show();
+                return;
+            }
             Log.Info("station deleted from form: " + _station.Id);
         })
         {

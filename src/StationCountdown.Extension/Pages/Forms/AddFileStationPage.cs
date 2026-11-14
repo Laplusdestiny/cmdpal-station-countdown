@@ -51,7 +51,8 @@ internal sealed partial class AddFileStationForm(StationStore store) : FormConte
         if (errors.Count > 0)
             return FormInputs.Reject(string.Join(" / ", errors.Select(e => e.Message)));
 
-        store.Save(doc);
+        if (store.TrySave(doc) is { } saveError)
+            return FormInputs.Reject(saveError);
         WriteExample(station);
         ShellHelpers.OpenInShell(AppPaths.TimetablesDir);
         Log.Info("station added from form: " + station.Id);
