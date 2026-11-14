@@ -147,6 +147,12 @@
 
     <!-- In release, also ignore the aforementioned ILLink warning -->
     <ILLinkTreatWarningsAsErrors>false</ILLinkTreatWarningsAsErrors>
+
+    <!--
+      トリミングした DLL のシンボル（PDB）を書き出さない。GitHub Actions で、ILLink が Windows のネイティブ PDB の
+      書き込み（ISymUnmanagedWriter2.Close）で 0xC0000005 で落ちることがあったため。配布物にシンボルは要らない。
+    -->
+    <TrimmerRemoveSymbols>true</TrimmerRemoveSymbols>
   </PropertyGroup>
 
 </Project>
