@@ -6,7 +6,10 @@ public class HankyuStationPageParserTests
 {
     private static readonly Uri PageUrl = new("https://www.hankyu.co.jp/station/kakuu.html");
 
-    internal static string Fixture(string name) => File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", name));
+    // Windows でチェックアウトすると、git の設定によっては fixture が CRLF になる。テストの中で文字列を置き換えるときに
+    // 改行の違いで一致しなくならないよう、LF にそろえて読む（CRLF のままの解析は *_handles_crlf のテストで確かめる）。
+    internal static string Fixture(string name)
+        => File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", name)).ReplaceLineEndings("\n");
 
     [Fact]
     public void Parse_extracts_current_directions()
@@ -31,6 +34,16 @@ public class HankyuStationPageParserTests
 
         Assert.DoesNotContain(page.Current, d => d.WeekdayUrl.AbsolutePath.Contains("/20990101/") || d.HolidayUrl.AbsolutePath.Contains("/20990101/"));
         Assert.True(page.HasRevisedTimetable);
+    }
+
+    [Fact]
+    public void Parse_handles_crlf()   // 実際の駅ページは CRLF
+    {
+        var html = Fixture("hankyu_station_page.html");
+
+        Assert.Equal(
+            HankyuStationPageParser.Parse(html, PageUrl).Current,
+            HankyuStationPageParser.Parse(html.ReplaceLineEndings("\r\n"), PageUrl).Current);
     }
 
     [Fact]

@@ -42,6 +42,11 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           global-json-file: global.json
+      # Windows でだけ起きる違い（改行コードなど）を、リリースの前に見つけるため、Windows でもテストを流す。
+      - name: Test Core on Windows
+        run: dotnet test --project tests/StationCountdown.Core.Tests
+      - name: Test Importers on Windows
+        run: dotnet test --project tests/StationCountdown.Importers.Tests
       - name: Build extension (x64, Release)
         run: dotnet build src/StationCountdown.Extension -c Release -p:Platform=x64
       - name: Build extension without importers (x64, Release)

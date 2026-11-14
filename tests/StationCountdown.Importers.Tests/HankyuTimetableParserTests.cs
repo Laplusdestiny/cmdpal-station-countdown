@@ -43,6 +43,12 @@ public class HankyuTimetableParserTests
     }
 
     [Fact]
+    public void Parse_handles_crlf()   // 実際の時刻表ページは CRLF
+        => Assert.Equal(
+            HankyuTimetableParser.Parse(Weekday),
+            HankyuTimetableParser.Parse(Weekday.ReplaceLineEndings("\r\n")));
+
+    [Fact]
     public void Parse_ignores_hour_class_suffix()
         => Assert.Equal(
             HankyuTimetableParser.Parse(Weekday),
