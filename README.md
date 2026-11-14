@@ -11,10 +11,16 @@ PowerToys Command Palette の **Dock** に、登録した駅・方面ごとに�
 - 設計書: [`docs/superpowers/specs/2026-11-09-station-countdown-design.md`](docs/superpowers/specs/2026-11-09-station-countdown-design.md)
 - 将来の機能: [Issues（`future` ラベル）](https://github.com/Laplusdestiny/cmdpal-station-countdown/issues?q=label%3Afuture)
 
-## 必要なもの
+## インストール
 
-- Windows 10 2004（19041）以降、PowerToys 0.98 以降（Command Palette の Dock を有効にする）
-- 開発中のため、配布用のパッケージはまだありません。下の「ビルドと配置」で、自分の PC に配置して使います
+必要なもの: Windows 10 2004（19041）以降（x64 / ARM64）、PowerToys 0.98 以降（Command Palette の Dock を有効にする）。
+
+1. [Releases](https://github.com/Laplusdestiny/cmdpal-station-countdown/releases) から `StationCountdown-<バージョン>.zip` をダウンロードし、すべて展開する
+2. `install.cmd` をダブルクリックする
+   - 初回だけ、署名の証明書（`CN=Laplusdestiny`、自己署名）を「信頼されたユーザー」に登録するため、管理者の確認が表示されます
+3. Command Palette で `Reload`（拡張機能の再読み込み）を実行する
+
+更新も同じ手順です。アンインストールは `uninstall.cmd` です（設定と時刻表は残ります）。配布の仕組みと手順は [`docs/release.md`](docs/release.md) にあります。
 
 ## 使い方
 
@@ -90,6 +96,7 @@ services:
 | 拡張機能（Windows） | VS Code のタスク「Extension: ビルドして Command Palette に登録」、または `tools\windows\Build-Extension.ps1 -Register`。Visual Studio と Windows SDK は不要で、.NET 10 SDK と Windows の開発者モードが必要 |
 | 拡張機能（WSL から） | `bash tools/windows/build-from-wsl.sh -Register`（Windows のローカルフォルダーに写してから上の ps1 を実行する） |
 | 拡張機能（Visual Studio） | `StationCountdown.sln` を開き、`x64` で `StationCountdown.Extension` を「配置」 |
+| 配布用の zip（Windows） | `tools\windows\New-ReleasePackage.ps1`。通常は `v1.2.3` のタグを push すると GitHub Actions が作る（[`docs/release.md`](docs/release.md)） |
 
 配置したあと、Command Palette で `Reload` を実行すると読み込まれます。詳しい手順と実機での確認項目は [`docs/verification/2026-11-10-dock-prototype-gate.md`](docs/verification/2026-11-10-dock-prototype-gate.md) にあります。
 

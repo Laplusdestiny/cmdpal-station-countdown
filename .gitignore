@@ -482,3 +482,6 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# 配布用の zip（tools/windows/New-ReleasePackage.ps1）やトリミングの検証の出力
+/out/

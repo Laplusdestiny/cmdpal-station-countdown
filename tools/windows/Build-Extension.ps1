@@ -8,6 +8,9 @@
 
     登録は Add-AppxPackage -Register で行う。パッケージはビルド出力のフォルダーをそのまま指すので、
     拡張機能が動いているとファイルがロックされる。そのため、ビルドの前に拡張機能のプロセスを止める。
+    配布用の MSIX（リリース）が入っている場合など、別の場所のパッケージが登録されていれば、先に外す
+    （同じ名前のパッケージは 1 つしか入らず、そのままでは登録が反映されないため）。
+    設定と時刻表は %LOCALAPPDATA%\StationCountdown にあり、パッケージを外しても消えない。
 
 .EXAMPLE
     .\tools\windows\Build-Extension.ps1 -Register
@@ -24,29 +27,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-
-# WSL や VS Code のターミナルに日本語が化けずに出るよう、出力を UTF-8 にする。
-[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-
-$PackageName = 'Laplusdestiny.StationCountdown'
-$ProcessName = 'StationCountdown.Extension'
-$RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
-$Project = Join-Path $RepoRoot 'src\StationCountdown.Extension\StationCountdown.Extension.csproj'
-
-function Find-Dotnet10 {
-    $candidates = @(
-        (Get-Command dotnet -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source -First 1),
-        (Join-Path $env:LOCALAPPDATA 'Microsoft\dotnet\dotnet.exe'),
-        (Join-Path $env:ProgramFiles 'dotnet\dotnet.exe')
-    ) | Where-Object { $_ -and (Test-Path $_) } | Select-Object -Unique
-
-    foreach ($candidate in $candidates) {
-        if (& $candidate --list-sdks 2>$null | Select-String -Pattern '^10\.' -Quiet) {
-            return $candidate
-        }
-    }
-    throw '.NET 10 SDK が見つかりません。https://dotnet.microsoft.com/download/dotnet/10.0 から入れるか、dotnet-install.ps1 -Channel 10.0 で %LOCALAPPDATA%\Microsoft\dotnet に入れてください。'
-}
+. (Join-Path $PSScriptRoot 'Common.ps1')
 
 function Test-DeveloperMode {
     $value = Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock' `
@@ -62,20 +43,16 @@ $dotnet = Find-Dotnet10
 Write-Host "dotnet: $dotnet"
 
 # 動いている拡張機能が、ビルド出力（= 登録済みパッケージの中身）をロックしているので止める。
-$running = Get-Process -Name $ProcessName -ErrorAction SilentlyContinue
-if ($running) {
-    Write-Host "動いている拡張機能のプロセスを止めます（PID: $($running.Id -join ', ')）"
-    $running | Stop-Process -Force
-    Start-Sleep -Milliseconds 500
-}
+Stop-Extension
 
-& $dotnet build $Project -c $Configuration "-p:Platform=$Platform" -nologo
+& $dotnet build $ExtensionProject -c $Configuration "-p:Platform=$Platform" -nologo
 if ($LASTEXITCODE -ne 0) {
     throw "ビルドに失敗しました（終了コード $LASTEXITCODE）。"
 }
 
 $rid = if ($Platform -eq 'x64') { 'win-x64' } else { 'win-arm64' }
-$manifest = Join-Path $RepoRoot "src\StationCountdown.Extension\bin\$Platform\$Configuration\net10.0-windows10.0.26100.0\$rid\AppxManifest.xml"
+$layout = Join-Path $RepoRoot "src\StationCountdown.Extension\bin\$Platform\$Configuration\net10.0-windows10.0.26100.0\$rid"
+$manifest = Join-Path $layout 'AppxManifest.xml'
 if (-not (Test-Path $manifest)) {
     throw "AppxManifest.xml が見つかりません: $manifest"
 }
@@ -85,11 +62,17 @@ if (-not $Register) {
     return
 }
 
+$existing = Get-AppxPackage -Name $PackageName
+if ($existing -and ($existing.InstallLocation.TrimEnd('\') -ne $layout.TrimEnd('\'))) {
+    Write-Host "別の場所のパッケージを外します: $($existing.PackageFullName)（$($existing.InstallLocation)）"
+    Remove-AppxPackage -Package $existing.PackageFullName
+}
+
 Add-AppxPackage -Register $manifest -ForceApplicationShutdown
 $package = Get-AppxPackage -Name $PackageName
-if (-not $package) {
-    throw "登録したはずのパッケージ $PackageName が見つかりません。"
+if (-not $package -or $package.InstallLocation.TrimEnd('\') -ne $layout.TrimEnd('\')) {
+    throw "登録が反映されていません（登録されている場所: $($package.InstallLocation)）。"
 }
 Write-Host "登録できました: $($package.PackageFullName)"
 Write-Host "  場所: $($package.InstallLocation)"
-Write-Host 'Command Palette で「Reload」（拡張機能の再読み込み）を実行すると、新しいビルドが読み込まれます。'
+Write-Host 'Command Palette で「Reload」（拡張機能の再読み込み）を実行すると、新しいビルドが読み込まれ、Dock のバンドも表示し直されます。'
