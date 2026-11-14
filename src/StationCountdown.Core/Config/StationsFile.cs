@@ -37,6 +37,63 @@ public static class StationsFile
             : new(new StationsDocument(settings, stations, overrides), r.Errors);
     }
 
+    /// <summary>
+    /// 組み立てた文書（フォームの入力など）を、<see cref="Parse"/> と同じルールで検証する。
+    /// YAML のノードがないので、エラーの行番号は 0 になる。
+    /// </summary>
+    public static IReadOnlyList<ConfigError> Validate(StationsDocument doc)
+    {
+        var errors = new List<ConfigError>();
+        void Check(string? error)
+        {
+            if (error is not null)
+                errors.Add(new ConfigError(0, error));
+        }
+
+        Check(StationRules.CheckRange("refreshIntervalDays", doc.Settings.RefreshIntervalDays,
+            StationRules.RefreshIntervalDaysMin, StationRules.RefreshIntervalDaysMax));
+        Check(StationRules.CheckRange("departuresListLimit", doc.Settings.DeparturesListLimit,
+            StationRules.DeparturesListLimitMin, StationRules.DeparturesListLimitMax));
+
+        var seenIds = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var s in doc.Stations)
+        {
+            var idError = StationRules.CheckId(s.Id);
+            Check(idError);
+            if (idError is null && !seenIds.Add(s.Id))
+                Check($"id が重複しています: {s.Id}");
+
+            Check(StationRules.CheckNotBlank("name", s.Name));
+            Check(StationRules.CheckNotBlank("directionLabel", s.DirectionLabel));
+            Check(StationRules.CheckRange("walkMinutes", s.WalkMinutes, StationRules.WalkMinutesMin, StationRules.WalkMinutesMax));
+
+            switch (s.Source.Type)
+            {
+                case SourceType.Hankyu:
+                    Check(s.Source.StationPageUrl is { } url ? StationRules.CheckHankyuUrl(url) : "stationPageUrl がありません。");
+                    Check(StationRules.CheckNotBlank("line", s.Source.Line ?? ""));
+                    Check(StationRules.CheckNotBlank("direction", s.Source.Direction ?? ""));
+                    break;
+                case SourceType.File:
+                    if (s.Source.StationPageUrl is not null || s.Source.Line is not null || s.Source.Direction is not null)
+                        Check($"file 型の駅（{s.Id}）には stationPageUrl・line・direction を書けません。");
+                    break;
+                default:
+                    Check($"source.type は hankyu か file にしてください: {s.Source.Type}");
+                    break;
+            }
+        }
+
+        var seenDates = new HashSet<DateOnly>();
+        foreach (var o in doc.DayTypeOverrides)
+        {
+            if (!seenDates.Add(o.Date))
+                Check($"同じ日付の上書きが複数あります: {o.Date.ToString(DateFormat, CultureInfo.InvariantCulture)}");
+        }
+
+        return errors;
+    }
+
     public static string Serialize(StationsDocument doc)
     {
         var root = new YamlMappingNode

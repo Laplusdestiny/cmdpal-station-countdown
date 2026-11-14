@@ -42,6 +42,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- 内閣府「国民の祝日について」の CSV（Shift_JIS）。出典は README を参照（spec §5.3） -->
+    <Content Include="Assets\syukujitsu.csv" CopyToOutputDirectory="PreserveNewest" />
+    <!-- エディタで stations.yaml・時刻表を補完するための JSON Schema。起動時に %LOCALAPPDATA%\StationCountdown\schemas へコピーする -->
+    <Content Include="..\..\schemas\*.schema.json" Link="schemas\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Manifest Include="$(ApplicationManifest)" />
   </ItemGroup>
 

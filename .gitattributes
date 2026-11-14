@@ -1,0 +1,2 @@
+# 内閣府の祝日 CSV（Shift_JIS、CRLF）は、取得したバイト列のまま扱う
+src/StationCountdown.Extension/Assets/syukujitsu.csv -text
