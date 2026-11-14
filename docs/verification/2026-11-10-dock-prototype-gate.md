@@ -7,18 +7,38 @@ Task 13 以降は、この確認が終わってから始めます。
 ## 準備
 
 - PowerToys 0.98 以降。Command Palette の設定で Dock を有効にしておく
-- Windows の「開発者モード」をオンにする（設定 → システム → 開発者向け）
-- Visual Studio 2022 17.14 以降、または 2026。ワークロードは「.NET デスクトップ開発」と「Windows アプリケーション開発」（Windows App SDK の C# テンプレート）
-- .NET 10 SDK
+- Windows の「開発者モード」をオンにする（設定 → システム → 開発者向け。PowerShell で `start ms-settings:developers` を実行すると開く）
+- Windows 側の .NET 10 SDK。管理者権限なしで入れる場合は、PowerShell で次を実行する（`%LOCALAPPDATA%\Microsoft\dotnet` に入る。ビルド用のスクリプトはここも探す）
+
+  ```powershell
+  $s = "$env:TEMP\dotnet-install.ps1"; Invoke-WebRequest https://dot.net/v1/dotnet-install.ps1 -OutFile $s; & $s -Channel 10.0 -InstallDir "$env:LOCALAPPDATA\Microsoft\dotnet" -NoPath
+  ```
+
+- Visual Studio と Windows SDK は不要（VS Code で配置する場合）。Visual Studio で配置する場合は、Visual Studio 2022 17.14 以降または 2026 に、「.NET デスクトップ開発」と「Windows アプリケーション開発」のワークロードを入れる
 
 ## 配置
+
+### VS Code で配置する場合
+
+1. VS Code でリポジトリを開く（Windows で開いても、WSL に接続して開いてもよい）
+2. コマンド パレットで「タスク: ビルド タスクの実行」（Ctrl+Shift+B）→「Extension: ビルドして Command Palette に登録」を選ぶ
+   - 中身は `tools/windows/Build-Extension.ps1 -Register`。`dotnet build` で MSIX のレイアウトを作り、`Add-AppxPackage -Register` で登録する（Visual Studio の「配置」と同じこと）
+   - WSL に接続している場合は、`tools/windows/build-from-wsl.sh` が先に `%USERPROFILE%\dev\cmdpal-station-countdown` へリポジトリを写す（MSIX は `\\wsl.localhost\…` からは登録できないため）
+   - 動いている拡張機能のプロセスは、ビルドの前に止める（登録したパッケージはビルド出力のフォルダーを指していて、ファイルがロックされるため）
+3. 下の「共通」の手順に進む
+
+### Visual Studio で配置する場合
 
 1. `feat/mvp` ブランチを取得し、`StationCountdown.sln` を Visual Studio で開く
 2. 構成を `Debug` / `x64` にする（ツールバーの「Any CPU」を「x64」に変える）
 3. ソリューション エクスプローラーで `StationCountdown.Extension` を右クリック →「配置」
-4. Command Palette を開き、`Reload` コマンド（「拡張機能を再読み込み」）を実行する
-5. Command Palette で「駅カウントダウン」が出ることを確かめる（中身は「ログフォルダを開く」「設定フォルダを開く」だけ）
-6. Dock の編集モードで、「駅カウントダウン（試作）」のバンドをピン留めする
+4. 下の「共通」の手順に進む
+
+### 共通
+
+1. Command Palette を開き、`Reload` コマンド（「拡張機能を再読み込み」）を実行する
+2. Command Palette で「駅カウントダウン」が出ることを確かめる（中身は「ログフォルダを開く」「設定フォルダを開く」だけ）
+3. Dock の編集モードで、「駅カウントダウン（試作）」のバンドをピン留めする
    - Title が `試作 H:mm`（JST の今の時刻）、Subtitle が `更新 n 回目` になる
    - 毎分 0 秒ごろに時刻が進み、回数が増える
 

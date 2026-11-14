@@ -1,0 +1,36 @@
+{
+  // 拡張機能（Windows 専用）のビルドと、Command Palette への登録（Visual Studio の「配置」の代わり）。
+  // - Windows で開いた VS Code: tools/windows/Build-Extension.ps1 を直接実行する
+  // - WSL に接続した VS Code: tools/windows/build-from-wsl.sh が Windows 側に写してから ps1 を実行する
+  // 手順と前提（.NET 10 SDK、開発者モード）は docs/verification/2026-11-10-dock-prototype-gate.md を参照。
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Extension: ビルドして Command Palette に登録",
+      "type": "shell",
+      "command": "bash tools/windows/build-from-wsl.sh -Register",
+      "windows": {
+        "command": "powershell -NoProfile -ExecutionPolicy Bypass -File tools/windows/Build-Extension.ps1 -Register"
+      },
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "Extension: ビルドだけ",
+      "type": "shell",
+      "command": "bash tools/windows/build-from-wsl.sh",
+      "windows": {
+        "command": "powershell -NoProfile -ExecutionPolicy Bypass -File tools/windows/Build-Extension.ps1"
+      },
+      "group": "build",
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "Core / Importers: テスト",
+      "type": "shell",
+      "command": "dotnet test --project tests/StationCountdown.Core.Tests && dotnet test --project tests/StationCountdown.Importers.Tests",
+      "group": { "kind": "test", "isDefault": true },
+      "problemMatcher": "$msCompile"
+    }
+  ]
+}

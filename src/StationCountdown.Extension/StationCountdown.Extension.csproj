@@ -61,6 +61,14 @@
     <!-- 時刻設定の変更・スリープからの復帰の通知（spec §5.6） -->
     <PackageReference Include="Microsoft.Win32.SystemEvents" />
 
+    <!--
+      MSIX の作成に必要な SDK のツール（makepri、makeappx など）を NuGet から使う。
+      Visual Studio や Windows SDK を入れていないマシン（VS Code + dotnet CLI）でもビルドできるようにするため。
+    -->
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+
     <!-- Needed to enable building an MSIX package -->
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools.MSIX">
       <PrivateAssets>all</PrivateAssets>
@@ -84,6 +92,13 @@
   <PropertyGroup>
     <PublishSingleFile>true</PublishSingleFile>
     <IsAotCompatible>true</IsAotCompatible>
+
+    <!--
+      CsWinRT は既定で Windows SDK をレジストリから探す。Windows SDK がなくてもビルドできるよう、
+      NuGet の Microsoft.Windows.SDK.NET.Ref に入っている Windows の winmd を使う（バージョンは同じ 10.0.26100）。
+    -->
+    <_NuGetWindowsMetadata>$(NuGetPackageRoot)microsoft.windows.sdk.net.ref\$(WindowsSdkPackageVersion)\winmd</_NuGetWindowsMetadata>
+    <CsWinRTWindowsMetadata Condition="'$(CsWinRTWindowsMetadata)' == '' and '$(NuGetPackageRoot)' != '' and Exists('$(_NuGetWindowsMetadata)')">$(_NuGetWindowsMetadata)</CsWinRTWindowsMetadata>
 
     <CsWinRTAotOptimizerEnabled>true</CsWinRTAotOptimizerEnabled>
     <CsWinRTAotWarningLevel>2</CsWinRTAotWarningLevel>

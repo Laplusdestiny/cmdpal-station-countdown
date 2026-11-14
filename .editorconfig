@@ -11,6 +11,10 @@ indent_size = 4
 [*.{csproj,props,targets,config,xml,yml,yaml,json}]
 indent_size = 2
 
+# Windows PowerShell 5.1 は BOM のない UTF-8 を ANSI として読むので、日本語を含む ps1 は BOM を付ける
+[*.ps1]
+charset = utf-8-bom
+
 [*.md]
 trim_trailing_whitespace = false
 
