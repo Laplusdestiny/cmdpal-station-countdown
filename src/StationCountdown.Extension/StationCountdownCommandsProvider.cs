@@ -19,6 +19,7 @@ public sealed partial class StationCountdownCommandsProvider : CommandProvider
     private readonly HttpClient _http = AppHttp.Create();
     private readonly ITimer _holidayTimer;
     private readonly CancellationTokenSource _shutdown = new();
+    private readonly StationActions _actions;
     private readonly ICommandItem[] _commands;
 
     private readonly Lock _bandsGate = new();
@@ -35,10 +36,15 @@ public sealed partial class StationCountdownCommandsProvider : CommandProvider
         _tick = new TickService(_time);
         _holidays.LoadLocal();
         _store = new StationStore(_time);
+        _actions = new StationActions(_store);
 
         _commands =
         [
-            new CommandItem(new PrototypePage()) { Title = "駅カウントダウン" },
+            new CommandItem(new StationsPage(_store, _holidays, _time, _actions))
+            {
+                Title = "駅カウントダウン",
+                Subtitle = "登録した駅と方面の、家を出るまでの時間",
+            },
         ];
 
         RebuildBands(force: true);
@@ -85,7 +91,7 @@ public sealed partial class StationCountdownCommandsProvider : CommandProvider
             if (force || key != _bandsKey)
             {
                 removed = _bandItems;
-                var items = stations.Select(s => new DepartureBand(s.Id, _store, _holidays, _time)).ToArray();
+                var items = stations.Select(s => new DepartureBand(s.Id, _store, _holidays, _time, _actions)).ToArray();
                 _bands = stations.Zip(items, (station, band) => (ICommandItem)new OnLoadBandItem(
                     [band],
                     station.BandCommandId,
