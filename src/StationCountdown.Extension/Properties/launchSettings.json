@@ -1,0 +1,11 @@
+{
+  "profiles": {
+    "StationCountdown.Extension (Package)": {
+      "commandName": "MsixPackage",
+      "doNotLaunchApp": true
+    },
+    "StationCountdown.Extension (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}

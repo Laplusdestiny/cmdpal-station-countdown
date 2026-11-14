@@ -1,0 +1,152 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- PowerToys の src/modules/cmdpal/ExtensionTemplate（MIT）をもとにしている。 -->
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <RootNamespace>StationCountdown.Extension</RootNamespace>
+    <AssemblyName>StationCountdown.Extension</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <Version>0.1.0</Version>
+
+    <WindowsSdkPackageVersion>10.0.26100.68-preview</WindowsSdkPackageVersion>
+    <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.19041.0</TargetPlatformMinVersion>
+    <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
+    <RuntimeIdentifiers>win-x64;win-arm64</RuntimeIdentifiers>
+    <!--
+      PublishSingleFile は RuntimeIdentifier が必要（NETSDK1097）。テンプレートは publish プロファイルでしか
+      指定していないため、dotnet build でも決まるように Platform から決める。
+    -->
+    <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == '' and '$(Platform)' == 'x64'">win-x64</RuntimeIdentifier>
+    <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == '' and '$(Platform)' == 'ARM64'">win-arm64</RuntimeIdentifier>
+
+    <PublishProfile>win-$(Platform).pubxml</PublishProfile>
+    <EnableMsixTooling>true</EnableMsixTooling>
+
+    <!-- テンプレートの Directory.Build.props から -->
+    <Platforms>x64;ARM64</Platforms>
+    <PlatformTarget>$(Platform)</PlatformTarget>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisMode>Recommended</AnalysisMode>
+    <_SkipUpgradeNetAnalyzersNuGetWarning>true</_SkipUpgradeNetAnalyzersNuGetWarning>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="Assets\SplashScreen.scale-200.png" />
+    <Content Include="Assets\LockScreenLogo.scale-200.png" />
+    <Content Include="Assets\Square150x150Logo.scale-200.png" />
+    <Content Include="Assets\Square44x44Logo.scale-200.png" />
+    <Content Include="Assets\Square44x44Logo.targetsize-24_altform-unplated.png" />
+    <Content Include="Assets\StoreLogo.png" />
+    <Content Include="Assets\Wide310x150Logo.scale-200.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 内閣府「国民の祝日について」の CSV（Shift_JIS）。出典は README を参照（spec §5.3） -->
+    <Content Include="Assets\syukujitsu.csv" CopyToOutputDirectory="PreserveNewest" />
+    <!-- エディタで stations.yaml・時刻表を補完するための JSON Schema。起動時に %LOCALAPPDATA%\StationCountdown\schemas へコピーする -->
+    <Content Include="..\..\schemas\*.schema.json" Link="schemas\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Manifest Include="$(ApplicationManifest)" />
+  </ItemGroup>
+
+  <!--
+    Defining the "Msix" ProjectCapability here allows the Single-project MSIX Packaging
+    Tools extension to be activated for this project even if the Windows App SDK Nuget
+    package has not yet been restored.
+  -->
+  <ItemGroup Condition="'$(DisableMsixProjectCapabilityAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
+    <ProjectCapability Include="Msix" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CommandPalette.Extensions" />
+    <PackageReference Include="Microsoft.Windows.CsWinRT" />
+    <PackageReference Include="Shmuelie.WinRTServer" />
+    <!-- 時刻設定の変更・スリープからの復帰の通知（spec §5.6） -->
+    <PackageReference Include="Microsoft.Win32.SystemEvents" />
+
+    <!--
+      MSIX の作成に必要な SDK のツール（makepri、makeappx など）を NuGet から使う。
+      Visual Studio や Windows SDK を入れていないマシン（VS Code + dotnet CLI）でもビルドできるようにするため。
+    -->
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+
+    <!-- Needed to enable building an MSIX package -->
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools.MSIX">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <!--
+    一般公開版（#4）向けの切り替え（spec §3）。-p:IncludeImporters=false でビルドすると、阪急のインポーター
+    （公式サイトからの取り込み）を含めない。その場合、hankyu 型の駅は「時刻表未取得」と表示する。
+  -->
+  <PropertyGroup>
+    <IncludeImporters Condition="'$(IncludeImporters)' == ''">true</IncludeImporters>
+    <DefineConstants Condition="'$(IncludeImporters)' != 'true'">$(DefineConstants);NO_IMPORTERS</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(IncludeImporters)' == 'true'">
+    <ProjectReference Include="..\StationCountdown.Importers\StationCountdown.Importers.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(IncludeImporters)' != 'true'">
+    <ProjectReference Include="..\StationCountdown.Core\StationCountdown.Core.csproj" />
+  </ItemGroup>
+
+  <!--
+    Defining the "HasPackageAndPublishMenuAddedByProject" property here allows the Solution
+    Explorer "Package and Publish" context menu entry to be enabled for this project even if
+    the Windows App SDK Nuget package has not yet been restored.
+  -->
+  <PropertyGroup Condition="'$(DisableHasPackageAndPublishMenuAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
+    <HasPackageAndPublishMenu>true</HasPackageAndPublishMenu>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <PublishSingleFile>true</PublishSingleFile>
+    <IsAotCompatible>true</IsAotCompatible>
+
+    <!--
+      CsWinRT は既定で Windows SDK をレジストリから探す。Windows SDK がなくてもビルドできるよう、
+      NuGet の Microsoft.Windows.SDK.NET.Ref に入っている Windows の winmd を使う（バージョンは同じ 10.0.26100）。
+    -->
+    <_NuGetWindowsMetadata>$(NuGetPackageRoot)microsoft.windows.sdk.net.ref\$(WindowsSdkPackageVersion)\winmd</_NuGetWindowsMetadata>
+    <CsWinRTWindowsMetadata Condition="'$(CsWinRTWindowsMetadata)' == '' and '$(NuGetPackageRoot)' != '' and Exists('$(_NuGetWindowsMetadata)')">$(_NuGetWindowsMetadata)</CsWinRTWindowsMetadata>
+
+    <CsWinRTAotOptimizerEnabled>true</CsWinRTAotOptimizerEnabled>
+    <CsWinRTAotWarningLevel>2</CsWinRTAotWarningLevel>
+    <!-- Suppress DynamicallyAccessedMemberTypes.PublicParameterlessConstructor in fallback code path of Windows SDK projection -->
+    <WarningsNotAsErrors>IL2081;$(WarningsNotAsErrors)</WarningsNotAsErrors>
+
+    <!-- When publishing trimmed, make sure to treat trimming warnings as build errors -->
+    <ILLinkTreatWarningsAsErrors>true</ILLinkTreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)'=='Debug'">
+    <!-- In Debug builds, trimming is disabled by default, but all the trim &
+         AOT warnings are enabled. This gives debug builds a tighter inner loop,
+         while at least warning about future trim violations -->
+    <PublishTrimmed>false</PublishTrimmed>
+
+    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+    <EnableSingleFileAnalyzer>true</EnableSingleFileAnalyzer>
+    <EnableAotAnalyzer>true</EnableAotAnalyzer>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)'!='Debug'">
+    <!-- In Release builds, trimming is enabled by default.
+         feel free to disable this if needed -->
+    <PublishTrimmed>true</PublishTrimmed>
+
+    <!-- In release, also ignore the aforementioned ILLink warning -->
+    <ILLinkTreatWarningsAsErrors>false</ILLinkTreatWarningsAsErrors>
+  </PropertyGroup>
+
+</Project>

@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    spec §10 の V4（YamlDotNet の表現モデル）と V5（AngleSharp）を、トリミングあり（Extension の Release と同じ条件）で確かめる。
+    実行: dotnet publish tools/TrimProbe -c Release -r linux-x64 -o out/TrimProbe && out/TrimProbe/TrimProbe
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <SelfContained>true</SelfContained>
+    <PublishTrimmed>true</PublishTrimmed>
+    <!-- ライブラリ内の警告も 1 件ずつ出し、すべてエラーにする -->
+    <TrimmerSingleWarn>false</TrimmerSingleWarn>
+    <ILLinkTreatWarningsAsErrors>true</ILLinkTreatWarningsAsErrors>
+    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\StationCountdown.Importers\StationCountdown.Importers.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="..\..\tests\StationCountdown.Importers.Tests\Fixtures\*.html" Link="Fixtures\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>
