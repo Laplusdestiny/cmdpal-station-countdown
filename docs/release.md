@@ -11,11 +11,11 @@
 
 | ファイル | 役割 |
 | --- | --- |
-| `.github/workflows/release.yml` | `v1.2.3` のタグで起動し、テスト → x64 / ARM64 の MSIX のビルドと署名 → zip を Release に添付 |
+| `.github/workflows/release.yml` | Release の公開で起動し、テスト → x64 / ARM64 の MSIX のビルドと署名 → zip をその Release に添付 |
 | `tools/windows/New-ReleasePackage.ps1` | MSIX のビルド・署名と zip の作成（手元でも動く） |
 | `tools/windows/New-SigningCertificate.ps1` | 署名用の自己署名証明書を作る |
 | `tools/installer/` | zip に入れるもの（`install.cmd`、`uninstall.cmd`、`README.txt` など） |
-| `.github/release-notes.md` | Release の説明文の先頭に入れるインストール手順 |
+| `.github/release-notes.md` | Release の説明文の先頭に入れるインストール手順（先頭の目印のコメントで、入れ済みかを見分ける） |
 
 zip の中身:
 
@@ -50,16 +50,20 @@ gh secret set SIGNING_CERT_PASSWORD --repo Laplusdestiny/cmdpal-station-countdow
 
 ## リリースする
 
-1. `main` にマージした状態で、バージョンのタグを付けて push する
+1. `main` にマージした状態で、GitHub の「Releases」→「Draft a new release」を開く
+2. 「Choose a tag」で `v0.1.0` の形の新しいタグを入力し（「Create new tag: v0.1.0 on publish」）、Target は `main` のままにする
+3. タイトルと説明文を書いて（「Generate release notes」で変更点を入れてもよい）、「Publish release」を押す
+4. Actions の「Release」が起動し、数分で `StationCountdown-0.1.0.zip` と `.sha256` がその Release の Assets に付く。説明文の先頭にはインストール手順（`.github/release-notes.md`）が入る
 
-   ```bash
-   git tag v0.1.0
-   git push origin v0.1.0
-   ```
+注意:
 
-2. Actions の「Release」が終わると、`v0.1.0` の Release に `StationCountdown-0.1.0.zip` と `.sha256` が付く
+- ワークフローは Release の**公開**で起動します。下書き（Draft）のまま保存しても起動せず、下書きを公開したときに起動します
+- 公開してから zip が付くまでの数分は、Assets に zip がありません
+- タグを push するだけでは起動しません（Release を作るとタグも作られるので、両方で起動すると 2 回ビルドが走るため）。コマンドで作る場合は `gh release create v0.1.0 --target main --title "Station Countdown 0.1.0" --generate-notes` のように Release ごと作ります
+- タグが `v1.2.3` の形でないと、ワークフローは失敗します
+- 失敗したら、原因を直してから Actions でその実行を「Re-run jobs」します。zip は置き換えられ、インストール手順は二重には入りません。ただし再実行で使われるのはタグの時点のワークフローなので、ワークフロー自体を直した場合は Release とタグを消して作り直します
 
-タグを付けずに試す場合は、Actions の「Release」→「Run workflow」でバージョンを入れて実行します（`main` にあるワークフローだけが選べます）。Release は作らず、zip を Artifacts に残します。
+Release を作らずに試す場合は、Actions の「Release」→「Run workflow」でバージョンを入れて実行します（`main` にあるワークフローだけが選べます）。Release には触らず、zip を Artifacts に残します。
 
 手元で zip を作る場合:
 
@@ -69,7 +73,7 @@ gh secret set SIGNING_CERT_PASSWORD --repo Laplusdestiny/cmdpal-station-countdow
 
 ## バージョン
 
-- タグ `v1.2.3` → MSIX のバージョン `1.2.3.0`。ビルドの間だけ `Package.appxmanifest` の Identity の Version を書き換える
+- Release のタグ `v1.2.3` → MSIX のバージョン `1.2.3.0`。ビルドの間だけ `Package.appxmanifest` の Identity の Version を書き換える
 - 更新は、利用者が新しい zip の `install.cmd` を実行するだけ（設定と時刻表は `%LOCALAPPDATA%\StationCountdown` にあり、消えない）
 
 ## 証明書の期限と作り直し

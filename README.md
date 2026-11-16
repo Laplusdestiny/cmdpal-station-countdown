@@ -96,7 +96,7 @@ services:
 | 拡張機能（Windows） | VS Code のタスク「Extension: ビルドして Command Palette に登録」、または `tools\windows\Build-Extension.ps1 -Register`。Visual Studio と Windows SDK は不要で、.NET 10 SDK と Windows の開発者モードが必要 |
 | 拡張機能（WSL から） | `bash tools/windows/build-from-wsl.sh -Register`（Windows のローカルフォルダーに写してから上の ps1 を実行する） |
 | 拡張機能（Visual Studio） | `StationCountdown.sln` を開き、`x64` で `StationCountdown.Extension` を「配置」 |
-| 配布用の zip（Windows） | `tools\windows\New-ReleasePackage.ps1`。通常は `v1.2.3` のタグを push すると GitHub Actions が作る（[`docs/release.md`](docs/release.md)） |
+| 配布用の zip（Windows） | `tools\windows\New-ReleasePackage.ps1`。通常は GitHub で `v1.2.3` のタグの Release を公開すると GitHub Actions が作って添付する（[`docs/release.md`](docs/release.md)） |
 
 配置したあと、Command Palette で `Reload` を実行すると読み込まれます。詳しい手順と実機での確認項目は [`docs/verification/2026-11-10-dock-prototype-gate.md`](docs/verification/2026-11-10-dock-prototype-gate.md) にあります。
 

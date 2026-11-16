@@ -1,3 +1,4 @@
+<!-- station-countdown:install-notes -->
 ## インストール・更新
 
 1. 下の **Assets** から `StationCountdown-<バージョン>.zip` をダウンロードし、すべて展開する

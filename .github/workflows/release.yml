@@ -1,12 +1,14 @@
 name: Release
 
-# v1.2.3 の形のタグを push すると、x64 / ARM64 の MSIX をビルドして自己署名の証明書で署名し、
-# インストール用の zip を GitHub Release に添付する。手順は docs/release.md。
-# 手動実行（workflow_dispatch）では Release を作らず、zip を成果物（Artifacts）に残すだけにする。
+# GitHub で Release を公開（published）すると、x64 / ARM64 の MSIX をビルドして自己署名の証明書で署名し、
+# インストール用の zip をその Release に添付する。Release のタグは v1.2.3 の形にする。手順は docs/release.md。
+# 手動実行（workflow_dispatch）では Release に触らず、zip を成果物（Artifacts）に残すだけにする。
+#
+# タグの push では起動しない。GitHub の画面で Release を作るとタグも作られるため、
+# 両方で起動すると同じビルドが 2 回走り、片方が「同じタグの Release がもうある」で失敗する。
 on:
-  push:
-    tags:
-      - 'v*.*.*'
+  release:
+    types: [published]
   workflow_dispatch:
     inputs:
       version:
@@ -33,9 +35,17 @@ jobs:
       - name: Determine version
         id: version
         shell: pwsh
+        env:
+          TAG_NAME: ${{ github.event.release.tag_name }}
+          INPUT_VERSION: ${{ inputs.version }}
         run: |
-          $version = if ('${{ github.event_name }}' -eq 'push') { '${{ github.ref_name }}'.Substring(1) } else { '${{ inputs.version }}' }
-          if ($version -notmatch '^\d+\.\d+\.\d+$') { throw "バージョンは 1.2.3 の形にしてください: $version" }
+          if ('${{ github.event_name }}' -eq 'release') {
+            if ($env:TAG_NAME -notmatch '^v(\d+\.\d+\.\d+)$') { throw "Release のタグは v1.2.3 の形にしてください: $env:TAG_NAME" }
+            $version = $Matches[1]
+          } else {
+            $version = $env:INPUT_VERSION
+            if ($version -notmatch '^\d+\.\d+\.\d+$') { throw "バージョンは 1.2.3 の形にしてください: $version" }
+          }
           "version=$version" >> $env:GITHUB_OUTPUT
 
       - name: Test Core
@@ -77,17 +87,39 @@ jobs:
             out/release/StationCountdown-${{ steps.version.outputs.version }}.zip.sha256
           if-no-files-found: error
 
-      - name: Create GitHub Release
-        if: github.event_name == 'push'
+      - name: Attach packages to the GitHub Release
+        if: github.event_name == 'release'
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
+          TAG_NAME: ${{ github.event.release.tag_name }}
         run: |
           $version = '${{ steps.version.outputs.version }}'
-          gh release create '${{ github.ref_name }}' `
+          # --clobber: 再実行したときは同じ名前のファイルを置き換える
+          gh release upload $env:TAG_NAME `
             "out/release/StationCountdown-$version.zip" `
             "out/release/StationCountdown-$version.zip.sha256" `
-            --verify-tag `
-            --title "Station Countdown $version" `
-            --notes-file .github/release-notes.md `
-            --generate-notes
+            --clobber
+          if ($LASTEXITCODE -ne 0) { throw "Release への添付に失敗しました（exit $LASTEXITCODE）" }
+
+      - name: Add install instructions to the release notes
+        if: github.event_name == 'release'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_NAME: ${{ github.event.release.tag_name }}
+          RELEASE_BODY: ${{ github.event.release.body }}
+        run: |
+          # 説明文の先頭にインストール手順（.github/release-notes.md）を入れる。目印のコメントがあれば入れ済みなので何もしない（再実行のとき）
+          $PSNativeCommandArgumentPassing = 'Standard'  # jq の式の中の " を gh にそのまま渡す
+          $marker = '<!-- station-countdown:install-notes -->'
+          $hasNotes = gh release view $env:TAG_NAME --json body --jq ".body | contains(`"$marker`")"
+          if ($LASTEXITCODE -ne 0) { throw "Release の説明文を読めませんでした（exit $LASTEXITCODE）" }
+          if ($hasNotes -eq 'true') { Write-Host 'インストール手順は入れ済みです'; exit 0 }
+
+          $notes = Get-Content -Raw -Encoding utf8 .github/release-notes.md
+          $body = if ($env:RELEASE_BODY) { "$notes`n$($env:RELEASE_BODY)" } else { $notes }
+          $file = Join-Path $env:RUNNER_TEMP 'release-notes.md'
+          [IO.File]::WriteAllText($file, $body, [Text.UTF8Encoding]::new($false))
+          gh release edit $env:TAG_NAME --notes-file $file
+          if ($LASTEXITCODE -ne 0) { throw "Release の説明文を更新できませんでした（exit $LASTEXITCODE）" }
