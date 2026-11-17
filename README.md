@@ -34,7 +34,24 @@ Command Palette で「駅カウントダウン」を開き、末尾のコマン�
 | ＋ ファイルで駅を追加 | 自分で用意した時刻表の YAML ファイルを使います。保存すると、書き方の例を置いたフォルダが開きます |
 
 追加した駅は、Dock の編集モードでバンドとしてピン留めできます。バンドをクリックすると、その駅の発車一覧が開きます。
-右クリックで「時刻表を再取得」（阪急の駅）・「駅を編集」・「設定フォルダを開く」ができます。
+右クリックで「時刻表を再取得」（阪急の駅）・「駅を編集」・「時刻表の要約」・「設定フォルダを開く」ができます。
+
+### AI で時刻表を作る
+
+阪急以外の駅は、PDF やウェブページの時刻表を AI（チャットの AI や、Claude Code などのエージェント）に渡して、時刻表ファイルを作れます。
+
+> **注意:** 時刻表の著作権は、鉄道事業者などにあります。取得元によっては、時刻表の複製・変換や、AI のサービスへの送信を、規約で禁じています。使う前に、取得元の規約を確認してください。時刻表を AI に渡すかどうかは、利用者の判断です。この拡張機能が、時刻表を AI のサービスへ送ることはありません。
+
+1. 「＋ ファイルで駅を追加」で駅を追加する
+2. 駅一覧でその駅を右クリックし、「AI 用のプロンプトをコピー」を選ぶ（駅の ID などが入ったプロンプトがクリップボードに写ります）
+3. AI にプロンプトを貼り、時刻表（PDF、ウェブページのスクリーンショットか本文）を渡す。日付を選んで表示する時刻表では、平日と日曜・祝日の日付の画面を 1 つずつ渡し、どの日付かを書き添える
+4. 出てきた YAML を `timetables\{ID}.yaml` に保存する
+5. AI が出した「時間帯ごとの本数」の表を、元の時刻表と見比べる。駅を右クリックして「時刻表の要約」を開くと、読み込んだ時刻表の本数も確かめられます
+
+誤りが疑われる行（0〜2 時台の時刻、並び順の崩れ、同じ行の重複）があると、「駅カウントダウン」の先頭に「時刻表の警告」が出ます（読み込みは止まりません）。
+
+- 拡張機能を入れていなくても、[`docs/ai-timetable-prompt.md`](docs/ai-timetable-prompt.md)（駅を指定しない版）をそのまま AI に渡して使えます
+- コマンドを実行できる AI エージェントには、このリポジトリで `dotnet run --project tools/TimetableCheck -- check <ファイル>` を実行させると、エラーと警告がなくなるまで自分で直させられます（終了コード: 0 = 問題なし、1 = エラー、2 = 警告だけ）
 
 ### 設定ファイル
 
@@ -93,6 +110,7 @@ services:
 | 対象 | 方法 |
 | --- | --- |
 | Core / Importers のテスト（Windows・Linux） | `dotnet test --project tests/StationCountdown.Core.Tests`（Importers も同様）。.NET 10 SDK が必要 |
+| 時刻表ファイルの検証（Windows・Linux） | `dotnet run --project tools/TimetableCheck -- check <ファイル>`。`-- prompt --out docs/ai-timetable-prompt.md` で、AI 用のプロンプトの写しを作り直す（`AiTimetablePrompt.cs` を変えたとき。テストで食い違いを検出します） |
 | 拡張機能（Windows） | VS Code のタスク「Extension: ビルドして Command Palette に登録」、または `tools\windows\Build-Extension.ps1 -Register`。Visual Studio と Windows SDK は不要で、.NET 10 SDK と Windows の開発者モードが必要 |
 | 拡張機能（WSL から） | `bash tools/windows/build-from-wsl.sh -Register`（Windows のローカルフォルダーに写してから上の ps1 を実行する） |
 | 拡張機能（Visual Studio） | `StationCountdown.sln` を開き、`x64` で `StationCountdown.Extension` を「配置」 |
