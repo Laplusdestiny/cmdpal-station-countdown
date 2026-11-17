@@ -1,4 +1,5 @@
 using System.Globalization;
+using StationCountdown.Core.Calendar;
 using StationCountdown.Core.Model;
 using StationCountdown.Core.Yaml;
 using YamlDotNet.Core;
@@ -71,16 +72,24 @@ public static class TimetableFile
                 }
 
                 var departures = new List<Departure>(lines.Children.Count);
+                var seen = new HashSet<string>(StringComparer.Ordinal);
+                Departure? previous = null;
                 foreach (var line in r.ScalarItems(lines, $"services.{name}"))
                 {
+                    Departure departure;
                     try
                     {
-                        departures.Add(Departure.ParseLine(line.Value!));
+                        departure = Departure.ParseLine(line.Value!);
                     }
                     catch (FormatException ex)
                     {
                         r.Error(line, ex.Message);
+                        continue;
                     }
+
+                    WarnIfSuspicious(r, line, departure, previous, seen);
+                    departures.Add(departure);
+                    previous = departure;
                 }
                 // 同じ時刻の電車は、ファイルに書いた順を保つ（安定ソート）。
                 services[dayType] = departures.OrderBy(d => d.Minutes).ToArray();
@@ -91,9 +100,34 @@ public static class TimetableFile
         }
 
         if (r.HasErrors || stationIdNode is null)
-            return new(null, r.Errors);
+            return new(null, r.Errors) { Warnings = r.Warnings };
 
-        return new(new Timetable(stationIdNode.Value!, fetchedAt, sourceUrls, services), r.Errors);
+        return new(new Timetable(stationIdNode.Value!, fetchedAt, sourceUrls, services), r.Errors) { Warnings = r.Warnings };
+    }
+
+    /// <summary>
+    /// 読み込めるが誤りが疑われる行を警告する。手で書いたり AI で作ったりしたファイルに多い誤りを拾う。
+    /// 1 行につき警告は 1 つまで（0〜2 時台 → 並び順 → 重複の順に見る）。
+    /// </summary>
+    private static void WarnIfSuspicious(YamlNodeReader r, YamlScalarNode line, Departure departure, Departure? previous, HashSet<string> seen)
+    {
+        var text = departure.ToLine();
+        if (departure.Minutes < ServiceDayResolver.ServiceDayStartHour * 60)
+        {
+            var later = departure with { Minutes = departure.Minutes + 24 * 60 };
+            r.Warning(line, $"{text[..5]} は 0〜2 時台です。営業日は 3:00 で切り替わるので、このままではカウントダウンに出ません。"
+                + $"0 時以降の電車は 24 時以降で書いてください（例: {later.ToLine()[..5]}）。");
+        }
+        else if (previous is not null && departure.Minutes < previous.Minutes)
+        {
+            r.Warning(line, $"{text[..5]} が前の行の {previous.ToLine()[..5]} より早くなっています。"
+                + "時刻の書き誤りか、行の抜け・入れ替わりがないか確かめてください。");
+        }
+        else if (seen.Contains(text))
+        {
+            r.Warning(line, $"同じ行（{text}）が 2 回あります。");
+        }
+        seen.Add(text);
     }
 
     public static string Serialize(Timetable timetable)

@@ -18,6 +18,13 @@ internal sealed class YamlNodeReader
 
     public void Error(YamlNode? node, string message) => _errors.Add(new ConfigError(LineOf(node), message));
 
+    private readonly List<ConfigError> _warnings = [];
+
+    /// <summary>集めた警告を行番号の順に返す。警告があっても読み込みは成功する。</summary>
+    public IReadOnlyList<ConfigError> Warnings => _warnings.OrderBy(e => e.Line).ToArray();
+
+    public void Warning(YamlNode? node, string message) => _warnings.Add(new ConfigError(LineOf(node), message));
+
     /// <summary>検証ルールの結果（null なら問題なし）を、<paramref name="node"/> の行のエラーとして記録する。</summary>
     public bool Check(YamlNode node, string? error)
     {

@@ -1,6 +1,7 @@
 using Microsoft.CommandPalette.Extensions;
 using Microsoft.CommandPalette.Extensions.Toolkit;
 using StationCountdown.Core.Model;
+using StationCountdown.Core.Timetables;
 using StationCountdown.Extension.Pages.Forms;
 using StationCountdown.Extension.Services;
 #if !NO_IMPORTERS
@@ -36,13 +37,15 @@ internal sealed class StationActions
     }
 #endif
 
-    /// <summary>駅一覧の行の右クリックのメニュー（編集・削除・再取得）。</summary>
+    /// <summary>駅一覧の行の右クリックのメニュー（編集・削除・再取得・時刻表の要約・AI 用のプロンプト）。</summary>
     public IContextItem[] ForStation(StationConfig station) =>
     [
         new CommandContextItem(new EditStationPage(station.Id, _store)),
         new CommandContextItem(new DeleteStationCommand(station, _store)) { IsCritical = true },
         .. Refresh(station),
         .. OpenTimetable(station),
+        .. Summary(station),
+        .. CopyAiPrompt(station),
         OpenSettingsFolder(),
     ];
 
@@ -95,6 +98,23 @@ internal sealed class StationActions
     {
         if (_store.GetTimetable(station.Id) is not null || _store.GetTimetableErrors(station.Id).Count > 0)
             yield return new CommandContextItem(new OpenUrlCommand(AppPaths.TimetablePath(station.Id)) { Name = "時刻表ファイルを開く" });
+    }
+
+    /// <summary>時刻表が読めていれば「時刻表の要約」（元の時刻表と見比べる用）。</summary>
+    private IEnumerable<IContextItem> Summary(StationConfig station)
+    {
+        if (_store.GetTimetable(station.Id) is not null)
+            yield return new CommandContextItem(new TimetableSummaryPage(station.Id, _store));
+    }
+
+    /// <summary>
+    /// file 型の駅だけ「AI 用のプロンプトをコピー」。クリップボードに写すだけで、AI のサービスへは何も送らない。
+    /// 時刻表を AI に渡すかどうかは、利用者が判断する。
+    /// </summary>
+    private static IEnumerable<IContextItem> CopyAiPrompt(StationConfig station)
+    {
+        if (station.Source.Type == SourceType.File)
+            yield return new CommandContextItem(new CopyTextCommand(AiTimetablePrompt.Build(station)) { Name = "AI 用のプロンプトをコピー" });
     }
 
     private static CommandContextItem OpenSettingsFolder()
