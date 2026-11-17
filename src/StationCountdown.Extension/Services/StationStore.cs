@@ -29,6 +29,7 @@ internal sealed partial class StationStore : IDisposable
     private readonly StationsState _state = new();
     private readonly Dictionary<string, Timetable> _timetables = new(StringComparer.Ordinal);
     private readonly Dictionary<string, IReadOnlyList<ConfigError>> _timetableErrors = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, IReadOnlyList<ConfigError>> _timetableWarnings = new(StringComparer.Ordinal);
     private readonly HashSet<string> _fetchFailed = new(StringComparer.Ordinal);
     private readonly FileSystemWatcher? _stationsWatcher;
     private readonly FileSystemWatcher? _timetablesWatcher;
@@ -64,6 +65,13 @@ internal sealed partial class StationStore : IDisposable
     {
         lock (_gate)
             return _timetableErrors.GetValueOrDefault(id) ?? [];
+    }
+
+    /// <summary>時刻表は読めたが、誤りが疑われる行（0〜2 時台の時刻、並び順の崩れ、重複）。</summary>
+    public IReadOnlyList<ConfigError> GetTimetableWarnings(string id)
+    {
+        lock (_gate)
+            return _timetableWarnings.GetValueOrDefault(id) ?? [];
     }
 
     public bool IsFetchFailed(string id)
@@ -130,6 +138,7 @@ internal sealed partial class StationStore : IDisposable
 
         var timetables = new Dictionary<string, Timetable>(StringComparer.Ordinal);
         var timetableErrors = new Dictionary<string, IReadOnlyList<ConfigError>>(StringComparer.Ordinal);
+        var timetableWarnings = new Dictionary<string, IReadOnlyList<ConfigError>>(StringComparer.Ordinal);
         foreach (var station in _state.Current.Stations)
         {
             var path = AppPaths.TimetablePath(station.Id);
@@ -143,6 +152,12 @@ internal sealed partial class StationStore : IDisposable
             if (parsed.Ok)
             {
                 timetables[station.Id] = parsed.Value!;
+                if (parsed.Warnings.Count > 0)
+                {
+                    timetableWarnings[station.Id] = parsed.Warnings;
+                    foreach (var w in parsed.Warnings)
+                        Log.Info($"timetables/{station.Id}.yaml: warning: {w}");
+                }
             }
             else
             {
@@ -160,6 +175,9 @@ internal sealed partial class StationStore : IDisposable
             _timetableErrors.Clear();
             foreach (var (k, v) in timetableErrors)
                 _timetableErrors[k] = v;
+            _timetableWarnings.Clear();
+            foreach (var (k, v) in timetableWarnings)
+                _timetableWarnings[k] = v;
         }
 
         RaiseChanged();
