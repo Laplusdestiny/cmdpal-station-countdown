@@ -50,4 +50,16 @@ public class TrainTypesTests
     [Fact]
     public void ApplySelection_empty_clears()
         => Assert.Empty(TrainTypes.ApplySelection(["普通"], ""));
+
+    [Fact]
+    public void SavedMessage_warns_when_filter_is_cleared()
+        => Assert.Equal("保存しました。表示する種別の絞り込みを外しました（すべての種別を表示します）。", TrainTypes.SavedMessage(["普通"], []));
+
+    [Theory]
+    [InlineData(new string[0], new string[0])]
+    [InlineData(new[] { "普通" }, new[] { "普通" })]
+    [InlineData(new string[0], new[] { "普通" })]
+    [InlineData(new[] { "普通" }, new[] { "準急" })]
+    public void SavedMessage_plain_otherwise(string[] before, string[] after)
+        => Assert.Equal("保存しました。", TrainTypes.SavedMessage(before, after));
 }

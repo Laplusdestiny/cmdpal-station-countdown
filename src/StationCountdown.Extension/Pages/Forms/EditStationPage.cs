@@ -92,6 +92,10 @@ internal sealed partial class EditStationForm(string stationId, StationStore sto
         if (store.TrySave(doc) is { } saveError)
             return FormInputs.Reject(saveError);
         Log.Info("station edited from form: " + edited.Id);
-        return CommandResult.ShowToast(new ToastArgs { Message = "保存しました。", Result = CommandResult.GoBack() });
+        return CommandResult.ShowToast(new ToastArgs
+        {
+            Message = TrainTypes.SavedMessage(current.TrainTypes, edited.TrainTypes),
+            Result = CommandResult.GoBack(),
+        });
     }
 }

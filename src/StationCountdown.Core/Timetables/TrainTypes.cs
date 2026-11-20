@@ -39,4 +39,12 @@ public static class TrainTypes
     /// </summary>
     public static IReadOnlyList<string> ApplySelection(IReadOnlyList<string> current, string? submitted)
         => submitted is null ? current : ParseSelection(submitted);
+
+    /// <summary>
+    /// 「駅を編集」で保存したときのメッセージ。絞り込みが外れたときは、止まらない種別も出るようになるので、はっきり知らせる。
+    /// </summary>
+    public static string SavedMessage(IReadOnlyList<string> before, IReadOnlyList<string> after)
+        => before.Count > 0 && after.Count == 0
+            ? "保存しました。表示する種別の絞り込みを外しました（すべての種別を表示します）。"
+            : "保存しました。";
 }
