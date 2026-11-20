@@ -45,6 +45,15 @@ public class CountdownFormatterTests
             CountdownFormatter.FormatBand(new BandState.NoTimetable(), Station, fetchFailed: false));
 
     [Fact]
+    public void Band_no_matching_trains()
+    {
+        Assert.Equal(new BandText("表示する種別の電車なし", "大阪梅田 宝塚方面"),
+            CountdownFormatter.FormatBand(new BandState.NoMatchingTrains(), Station, fetchFailed: false));
+        Assert.Equal("大阪梅田 宝塚方面 ／ 取得失敗",
+            CountdownFormatter.FormatBand(new BandState.NoMatchingTrains(), Station, fetchFailed: true).Subtitle);
+    }
+
+    [Fact]
     public void Band_fetch_failed_appends_marker()
         => Assert.Equal(new BandText("急行 宝塚 あと3分", "12:34発 ／ 次 12:40 普通 ／ 取得失敗"),
             CountdownFormatter.FormatBand(Normal, Station, fetchFailed: true));
