@@ -34,6 +34,11 @@ public class StationsValidateTests
         { "refreshIntervalDays が 31", Good with { Settings = Good.Settings with { RefreshIntervalDays = 31 } }, true },
         { "departuresListLimit が 4", Good with { Settings = Good.Settings with { DeparturesListLimit = 4 } }, true },
         { "departuresListLimit が 101", Good with { Settings = Good.Settings with { DeparturesListLimit = 101 } }, true },
+        { "trainTypes の重複", WithFirst(Hankyu with { TrainTypes = ["普通", "普通"] }), true },
+        { "trainTypes に空白", WithFirst(Hankyu with { TrainTypes = ["普 通"] }), true },
+        { "trainTypes に全角空白", WithFirst(Hankyu with { TrainTypes = ["普\u3000通"] }), true },
+        { "trainTypes にカンマ", WithFirst(Hankyu with { TrainTypes = ["普通,準急"] }), true },
+        { "trainTypes が空文字", WithFirst(Hankyu with { TrainTypes = [""] }), true },
         { "上書きの日付の重複", Good with { DayTypeOverrides = [.. Good.DayTypeOverrides, Good.DayTypeOverrides[0] with { DayType = DayType.Weekday }] }, true },
     };
 

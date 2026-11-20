@@ -67,6 +67,15 @@ public static class StationsFile
             Check(StationRules.CheckNotBlank("directionLabel", s.DirectionLabel));
             Check(StationRules.CheckRange("walkMinutes", s.WalkMinutes, StationRules.WalkMinutesMin, StationRules.WalkMinutesMax));
 
+            var seenTypes = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var t in s.TrainTypes)
+            {
+                var typeError = StationRules.CheckTrainType(t);
+                Check(typeError);
+                if (typeError is null && !seenTypes.Add(t))
+                    Check(StationRules.DuplicateTrainType(t));
+            }
+
             switch (s.Source.Type)
             {
                 case SourceType.Hankyu:
@@ -119,14 +128,17 @@ public static class StationsFile
                 source.Add("direction", Plain(s.Source.Direction ?? ""));
             }
 
-            stations.Add(new YamlMappingNode
+            var station = new YamlMappingNode
             {
                 { "id", Plain(s.Id) },
                 { "name", Plain(s.Name) },
                 { "directionLabel", Plain(s.DirectionLabel) },
                 { "walkMinutes", Plain(s.WalkMinutes) },
-                { "source", source },
-            });
+            };
+            if (s.TrainTypes.Count > 0)
+                station.Add("trainTypes", new YamlSequenceNode(s.TrainTypes.Select(t => (YamlNode)Plain(t))) { Style = SequenceStyle.Flow });
+            station.Add("source", source);
+            stations.Add(station);
         }
         root.Add("stations", stations);
 
@@ -176,7 +188,7 @@ public static class StationsFile
                 continue;
             }
 
-            r.RejectUnknownKeys(map, "id", "name", "directionLabel", "walkMinutes", "source");
+            r.RejectUnknownKeys(map, "id", "name", "directionLabel", "walkMinutes", "trainTypes", "source");
 
             var idNode = r.GetScalarNode(map, "id", required: true);
             if (idNode is not null && r.Check(idNode, StationRules.CheckId(idNode.Value!))
@@ -186,12 +198,40 @@ public static class StationsFile
             var name = GetNotBlank(r, map, "name");
             var directionLabel = GetNotBlank(r, map, "directionLabel");
             var walk = GetRangedInt(r, map, "walkMinutes", required: true, StationRules.WalkMinutesMin, StationRules.WalkMinutesMax);
+            var trainTypes = ParseTrainTypes(r, map);
             var source = ParseSource(r, map);
 
-            if (idNode is not null && name is not null && directionLabel is not null && walk is not null && source is not null)
-                result.Add(new StationConfig(idNode.Value!, name, directionLabel, walk.Value, source));
+            if (idNode is not null && name is not null && directionLabel is not null && walk is not null && source is not null
+                && trainTypes is not null)
+                result.Add(new StationConfig(idNode.Value!, name, directionLabel, walk.Value, source) { TrainTypes = trainTypes });
         }
         return result;
+    }
+
+    /// <summary><c>trainTypes</c>（省略できる）。省略なら空、誤りがあれば null。</summary>
+    private static List<string>? ParseTrainTypes(YamlNodeReader r, YamlMappingNode station)
+    {
+        var result = new List<string>();
+        if (r.GetNode(station, "trainTypes", required: false) is null)
+            return result;
+        if (r.GetSequence(station, "trainTypes", required: false) is not { } seq)
+            return null;
+
+        var ok = true;
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var node in r.ScalarItems(seq, "trainTypes").ToList())
+        {
+            if (!r.Check(node, StationRules.CheckTrainType(node.Value!)))
+                ok = false;
+            else if (!seen.Add(node.Value!))
+            {
+                r.Error(node, StationRules.DuplicateTrainType(node.Value!));
+                ok = false;
+            }
+            else
+                result.Add(node.Value!);
+        }
+        return ok && result.Count == seq.Children.Count ? result : null;
     }
 
     private static StationSource? ParseSource(YamlNodeReader r, YamlMappingNode station)
