@@ -139,6 +139,7 @@ dayTypeOverrides:
 | `id` | `^[a-z0-9]+(-[a-z0-9]+)*$`、64 文字以内、重複不可。バンドの Command ID は `com.laplusdestiny.stationcountdown.band.{id}` |
 | `name` / `directionLabel` | 空文字は不可 |
 | `walkMinutes` | 0〜120 の整数 |
+| `trainTypes` | 省略可（#13）。表示する種別のリストで、書いた種別の電車だけを表示する（許可リスト、完全一致）。省略または空ならすべて表示。要素は空・空白（全角を含む）・カンマを含めない。重複不可 |
 | `source.type` | `hankyu` または `file`。`hankyu` の場合は `stationPageUrl`・`line`・`direction` が必須で、URL は `https://www.hankyu.co.jp/` で始まること |
 | `dayTypeOverrides[].dayType` | §4.3 に挙げた 4 種類のいずれか |
 | `settings.*` | §6.3 の範囲内であること。省略可 |
@@ -238,6 +239,7 @@ services:
 | `remain = 0` | `{種別} {行先} 今すぐ` | 同上 |
 | 本日終了 | `本日終了` | `始発 {H:MM} {種別} {行先}` |
 | 時刻表がない、または該当するダイヤがない | `時刻表未取得` | `{name} {directionLabel}` |
+| ダイヤに電車はあるが、`trainTypes` の種別の電車がない（#13） | `表示する種別の電車なし` | `{name} {directionLabel}` |
 | 取得に失敗し、前回のデータで表示中 | 通常と同じ | 通常の Subtitle の末尾に ` ／ 取得失敗` を付ける |
 
 - 時刻表の 24 時以降の時刻は、表示するときに 0 時台に戻す（`24:10` は `0:10` と表示）。
@@ -252,7 +254,7 @@ services:
 | `StationDeparturesPage` | §5.5 の一覧。1 行は `{HH:MM} {種別} {行先}` の形で、Subtitle は `あと{remain}分` か `間に合わない`。 |
 | `AddHankyuStationForm` | 2 段階のフォーム。(1) 駅ページの URL を入力すると、拡張機能が駅ページを取得・解析し、路線と方面の候補を作る。(2) 路線・方面を選び、表示名（既定は駅名）・徒歩の分数（既定は 5）・ID（既定は自動生成）を入力する。保存すると、`stations.yaml` に追記して時刻表を取得する。 |
 | `AddFileStationForm` | ID・表示名・方面・徒歩の分数を入力する。保存すると `stations.yaml` に追記し、時刻表ファイルを置く場所を Toast で知らせて、フォルダを開く。 |
-| `EditStationForm` | 表示名・方面・徒歩の分数を変更する。 |
+| `EditStationForm` | 表示名・方面・徒歩の分数と、表示する種別（#13）を変更する。種別は取得済みの時刻表に出てくる種別のチェックボックスで選ぶ（何も選ばないとすべて表示）。時刻表がまだなければ選べない。 |
 | 削除 | `ConfirmationArgs` で確認してから、`stations.yaml` から取り除く。時刻表ファイルは残す。 |
 
 フォームから保存するときの決まり:
