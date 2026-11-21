@@ -81,6 +81,12 @@
           "minimum": 0,
           "maximum": 120
         },
+        "trainTypes": {
+          "description": "表示する種別（ここに書いた種別だけ表示する。省略するとすべて表示）",
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^[^\\s,]+$" }
+        },
         "source": {
           "oneOf": [
             {

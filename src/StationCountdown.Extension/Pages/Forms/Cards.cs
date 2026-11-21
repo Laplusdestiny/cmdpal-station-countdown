@@ -76,4 +76,12 @@ internal static class Cards
               "value": {{Str(value)}},
               "choices": [{{string.Join(",", choices.Select(c => $$"""{ "title": {{Str(c.Title)}}, "value": {{Str(c.Value)}} }"""))}}] }
             """;
+
+    /// <summary>チェックボックスの複数選択。選んだ値はカンマ区切りの 1 つの文字列で届く。何も選ばなくても送信できる。</summary>
+    public static string MultiChoiceSet(string id, string label, IEnumerable<(string Title, string Value)> choices, IEnumerable<string> values)
+        => $$"""
+            { "type": "Input.ChoiceSet", "id": {{Str(id)}}, "label": {{Str(label)}}, "style": "expanded", "isMultiSelect": true,
+              "isRequired": false, "value": {{Str(string.Join(",", values))}},
+              "choices": [{{string.Join(",", choices.Select(c => $$"""{ "title": {{Str(c.Title)}}, "value": {{Str(c.Value)}} }"""))}}] }
+            """;
 }

@@ -263,4 +263,82 @@ public class NextDepartureCalculatorTests
     [Fact]
     public void List_limit_zero_or_less_is_empty()
         => Assert.Empty(NextDepartureCalculator.ComputeList(At(10, 12, 0), Ctx(), limit: 0));
+
+    // ---- 種別の絞り込み（#13） ----
+
+    private static StationConfig Filtered(params string[] types) => Station with { TrainTypes = types };
+
+    [Fact]
+    public void Band_filter_skips_other_types()
+    {
+        var up = Assert.IsType<BandState.Upcoming>(NextDepartureCalculator.ComputeBand(At(10, 12, 19), Ctx(station: Filtered("普通"))));
+
+        Assert.Equal(D("12:40 普通 A"), up.Next);
+        Assert.Equal(D("24:10 普通 A"), up.Following);
+    }
+
+    [Fact]
+    public void Band_filter_applies_to_following()
+    {
+        var up = Assert.IsType<BandState.Upcoming>(NextDepartureCalculator.ComputeBand(At(10, 4, 0), Ctx(station: Filtered("普通"))));
+
+        Assert.Equal(D("05:00 普通 A"), up.Next);
+        Assert.Equal(D("12:40 普通 A"), up.Following);
+    }
+
+    [Fact]
+    public void Band_filter_end_of_service_uses_filtered_first_train()
+    {
+        var table = Table with
+        {
+            Services = new Dictionary<DayType, IReadOnlyList<Departure>> { [DayType.Weekday] = Lines("05:00 急行 B", "05:10 普通 A", "12:00 普通 A") },
+        };
+
+        var end = Assert.IsType<BandState.EndOfService>(NextDepartureCalculator.ComputeBand(At(10, 13, 0), Ctx(table, Filtered("普通"))));
+
+        Assert.Equal(D("05:10 普通 A"), end.FirstTrain);
+    }
+
+    [Fact]
+    public void Band_no_matching_trains_when_type_missing()
+        => Assert.IsType<BandState.NoMatchingTrains>(NextDepartureCalculator.ComputeBand(At(10, 12, 0), Ctx(station: Filtered("特急"))));
+
+    [Fact]
+    public void Band_no_matching_trains_after_today_ends()
+    {
+        // 11-10（火）13:00。今日の急行は終わったが、翌営業日（水・平日）にも急行がある。
+        var end = Assert.IsType<BandState.EndOfService>(NextDepartureCalculator.ComputeBand(At(10, 13, 0), Ctx(station: Filtered("急行"))));
+        Assert.Equal(D("12:30 急行 B"), end.FirstTrain);
+
+        // 11-13（金）13:00。翌営業日（土）の土休日ダイヤに急行がない。
+        Assert.IsType<BandState.NoMatchingTrains>(NextDepartureCalculator.ComputeBand(At(13, 13, 0), Ctx(station: Filtered("急行"))));
+    }
+
+    [Fact]
+    public void Band_empty_filter_is_unchanged()
+        => Assert.Equal(
+            NextDepartureCalculator.ComputeBand(At(10, 12, 23), Ctx()),
+            NextDepartureCalculator.ComputeBand(At(10, 12, 23), Ctx(station: Filtered())));
+
+    [Fact]
+    public void List_filter_skips_other_types()
+    {
+        var list = NextDepartureCalculator.ComputeList(At(10, 12, 0), Ctx(station: Filtered("急行")), limit: 10);
+
+        Assert.Equal(D("12:30 急行 B"), list[0].Departure);
+        Assert.All(list, e => Assert.Equal("急行", e.Departure.TrainType));
+    }
+
+    [Fact]
+    public void List_hidden_by_train_types()
+    {
+        var ctx = Ctx(station: Filtered("特急"));
+        Assert.Empty(NextDepartureCalculator.ComputeList(At(10, 12, 0), ctx, limit: 30));
+        Assert.True(NextDepartureCalculator.IsListHiddenByTrainTypes(At(10, 12, 0), ctx, limit: 30));
+
+        Assert.False(NextDepartureCalculator.IsListHiddenByTrainTypes(At(10, 12, 0), Ctx(station: Filtered()), limit: 30));
+
+        var noServices = Table with { Services = new Dictionary<DayType, IReadOnlyList<Departure>>() };
+        Assert.False(NextDepartureCalculator.IsListHiddenByTrainTypes(At(10, 12, 0), Ctx(noServices, Filtered("特急")), limit: 30));
+    }
 }

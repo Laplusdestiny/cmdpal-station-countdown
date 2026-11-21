@@ -29,6 +29,9 @@ public static class CountdownFormatter
             BandState.NoTimetable => new BandText(
                 "時刻表未取得",
                 $"{station.Name} {station.DirectionLabel}"),
+            BandState.NoMatchingTrains => new BandText(
+                "表示する種別の電車なし",
+                $"{station.Name} {station.DirectionLabel}"),
             _ => throw new ArgumentOutOfRangeException(nameof(state), state, null),
         };
 
