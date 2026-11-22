@@ -9,8 +9,11 @@ public static class NextDepartureCalculator
     public static BandState ComputeBand(DateTimeOffset now, CalcContext ctx)
     {
         var today = ServiceDayResolver.GetServiceDate(now);
-        if (GetDepartures(today, ctx) is not { } departures)
+        if (GetDepartures(today, ctx) is not { } all)
             return new BandState.NoTimetable();
+
+        // 表示する種別だけにしてから探す（#13）。
+        var departures = Filter(all, ctx.Station);
 
         // 発車時刻の昇順に並んでいるので、家を出る時刻も昇順。最初に間に合う 1 本と、その次の 1 本を取る。
         for (var i = 0; i < departures.Count; i++)
@@ -24,8 +27,13 @@ public static class NextDepartureCalculator
         }
 
         // 本日終了。翌営業日（1 日分だけ見る）の始発を出す。
-        return GetDepartures(today.AddDays(1), ctx) is [var first, ..]
-            ? new BandState.EndOfService(first)
+        var nextAll = GetDepartures(today.AddDays(1), ctx);
+        if (nextAll is not null && Filter(nextAll, ctx.Station) is [var first, ..])
+            return new BandState.EndOfService(first);
+
+        // 電車はあるのに、絞り込んだせいで出せる電車がない。
+        return nextAll is [_, ..] || (all.Count > 0 && departures.Count == 0)
+            ? new BandState.NoMatchingTrains()
             : new BandState.NoTimetable();
     }
 
@@ -45,7 +53,7 @@ public static class NextDepartureCalculator
         void Append(List<ListEntry> list, DateOnly date, bool isNextServiceDay)
         {
             // ダイヤが決まらない日は飛ばす（バンドとは違い、出せる分だけ出す）。
-            foreach (var d in GetDepartures(date, ctx) ?? [])
+            foreach (var d in Filter(GetDepartures(date, ctx) ?? [], ctx.Station))
             {
                 if (list.Count >= limit)
                     return;
@@ -57,6 +65,18 @@ public static class NextDepartureCalculator
             }
         }
     }
+
+    /// <summary>一覧が、表示する種別で絞り込んだせいで空になっているか（#13）。</summary>
+    public static bool IsListHiddenByTrainTypes(DateTimeOffset now, CalcContext ctx, int limit)
+        => ctx.Station.TrainTypes.Count > 0
+           && ComputeList(now, ctx, limit).Count == 0
+           && ComputeList(now, ctx with { Station = ctx.Station with { TrainTypes = [] } }, limit).Count > 0;
+
+    /// <summary>表示する種別の電車だけを残す。<see cref="StationConfig.TrainTypes"/> が空なら、そのまま返す。</summary>
+    private static IReadOnlyList<Departure> Filter(IReadOnlyList<Departure> departures, StationConfig station)
+        => station.TrainTypes.Count == 0
+            ? departures
+            : departures.Where(d => station.TrainTypes.Contains(d.TrainType, StringComparer.Ordinal)).ToList();
 
     /// <summary>営業日 <paramref name="date"/> に使うダイヤ。時刻表がない、またはダイヤが決まらなければ null。</summary>
     private static IReadOnlyList<Departure>? GetDepartures(DateOnly date, CalcContext ctx)

@@ -111,6 +111,11 @@ public class StationsFileTests
     [InlineData("schemaVersion: 1", "schemaVersion: 2", 2)]
     [InlineData("    walkMinutes: 10\n", "    walkMinutes: 10\n    walkMinute: 10\n", 20)] // 不明なキー
     [InlineData("      type: file\n", "      type: file\n      line: 架空線\n", 22)]       // file 型に hankyu 用のキー
+    [InlineData("walkMinutes: 8\n", "walkMinutes: 8\n    trainTypes: [普通, 普通]\n", 11)]      // 種別の重複
+    [InlineData("walkMinutes: 8\n", "walkMinutes: 8\n    trainTypes: [\"普 通\"]\n", 11)]      // 種別に空白
+    [InlineData("walkMinutes: 8\n", "walkMinutes: 8\n    trainTypes: [\"普通,準急\"]\n", 11)]  // 種別にカンマ
+    [InlineData("walkMinutes: 8\n", "walkMinutes: 8\n    trainTypes: [\"\"]\n", 11)]          // 種別が空
+    [InlineData("walkMinutes: 8\n", "walkMinutes: 8\n    trainTypes: 普通\n", 11)]             // リストでない
     public void Parse_rejects_invalid_with_line_number(string find, string replace, int line)
     {
         Assert.Contains(find, Valid);
@@ -180,6 +185,60 @@ public class StationsFileTests
         var bad = StationsFile.Parse("﻿" + Valid.Replace("walkMinutes: 8", "walkMinutes: -1").ReplaceLineEndings("\r\n"));
         Assert.Contains(bad.Errors, e => e.Line == 10);
     }
+
+    [Fact]
+    public void Parse_trainTypes_defaults_to_empty()
+    {
+        var doc = StationsFile.Parse(Valid).Value!;
+
+        Assert.Empty(doc.Stations[0].TrainTypes);
+        Assert.Empty(doc.Stations[1].TrainTypes);
+    }
+
+    [Fact]
+    public void Parse_reads_trainTypes()
+    {
+        var r = StationsFile.Parse(Valid.Replace("    walkMinutes: 8\n", "    walkMinutes: 8\n    trainTypes: [普通, 準急]\n"));
+
+        Assert.True(r.Ok, string.Join("\n", r.Errors));
+        Assert.Equal(["普通", "準急"], r.Value!.Stations[0].TrainTypes);
+    }
+
+    [Fact]
+    public void Serialize_then_Parse_roundtrips_trainTypes()
+    {
+        var parsed = StationsFile.Parse(Valid).Value!;
+        var original = parsed with { Stations = [parsed.Stations[0] with { TrainTypes = ["普通", "準急"] }, parsed.Stations[1]] };
+
+        var yaml = StationsFile.Serialize(original);
+        var again = StationsFile.Parse(yaml);
+
+        Assert.True(again.Ok, yaml + "\n" + string.Join("\n", again.Errors));
+        AssertSameDocument(original, again.Value!);
+    }
+
+    [Theory]
+    [InlineData("[臨時]")]
+    [InlineData("#特急")]
+    [InlineData("'急行'")]
+    [InlineData("準急:")]
+    [InlineData("123")]
+    [InlineData("true")]
+    public void Serialize_roundtrips_tricky_trainTypes(string type)
+    {
+        var doc = new StationsDocument(new GlobalSettings(),
+            [new StationConfig("kakuu-kita", "架空北", "北方面", 5, new StationSource(SourceType.File)) { TrainTypes = [type, "普通"] }], []);
+
+        var yaml = StationsFile.Serialize(doc);
+        var again = StationsFile.Parse(yaml);
+
+        Assert.True(again.Ok, yaml + "\n" + string.Join("\n", again.Errors));
+        Assert.Equal([type, "普通"], again.Value!.Stations[0].TrainTypes);
+    }
+
+    [Fact]
+    public void Serialize_omits_empty_trainTypes()
+        => Assert.DoesNotContain("trainTypes", StationsFile.Serialize(StationsFile.Parse(Valid).Value!));
 
     [Fact]
     public void Serialize_then_Parse_roundtrips()

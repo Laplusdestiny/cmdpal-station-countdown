@@ -59,7 +59,7 @@ internal sealed partial class AddFileStationForm(StationStore store) : FormConte
 
         return CommandResult.ShowToast(new ToastArgs
         {
-            Message = $"時刻表ファイルを {AppPaths.TimetablePath(station.Id)} に置いてください（例: {Path.GetFileName(ExamplePath(station))}）",
+            Message = $"時刻表ファイルを {AppPaths.TimetablePath(station.Id)} に置いてください（例: {Path.GetFileName(ExamplePath(station))}）。表示する種別は「駅を編集」で選べます。",
             Result = CommandResult.GoHome(),
         });
     }

@@ -20,6 +20,9 @@ public abstract record BandState
 
     /// <summary>時刻表がない、または該当するダイヤがない。</summary>
     public sealed record NoTimetable : BandState;
+
+    /// <summary>ダイヤに電車はあるが、表示する種別（<see cref="StationConfig.TrainTypes"/>）の電車がない（#13）。</summary>
+    public sealed record NoMatchingTrains : BandState;
 }
 
 /// <summary>一覧ページの 1 行（spec §5.5）。</summary>

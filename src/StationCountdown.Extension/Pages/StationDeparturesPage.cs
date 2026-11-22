@@ -40,15 +40,19 @@ internal sealed partial class StationDeparturesPage : ListPage
         Title = $"{station.Name} {station.DirectionLabel}";
 
         var ctx = StationContext.Create(station, _store, _holidays);
-        var entries = NextDepartureCalculator.ComputeList(_time.GetUtcNow(), ctx, _store.Current.Settings.DeparturesListLimit);
+        var now = _time.GetUtcNow();
+        var limit = _store.Current.Settings.DeparturesListLimit;
+        var entries = NextDepartureCalculator.ComputeList(now, ctx, limit);
         if (entries.Count == 0)
         {
             var errors = _store.GetTimetableErrors(station.Id);
-            return errors.Count > 0
-                ? [Message("時刻表を読めません", string.Join(" / ", errors))]
-                : [Message("時刻表未取得", ctx.Timetable is null
-                    ? $"timetables\\{station.Id}.yaml がありません。"
-                    : "今日と翌日のダイヤが見つかりません。")];
+            if (errors.Count > 0)
+                return [Message("時刻表を読めません", string.Join(" / ", errors))];
+            if (NextDepartureCalculator.IsListHiddenByTrainTypes(now, ctx, limit))
+                return [Message("表示する種別の電車がありません", "「駅を編集」で表示する種別を見直してください。")];
+            return [Message("時刻表未取得", ctx.Timetable is null
+                ? $"timetables\\{station.Id}.yaml がありません。"
+                : "今日と翌日のダイヤが見つかりません。")];
         }
 
         var items = new List<IListItem>(entries.Count + 1);
