@@ -1,0 +1,13 @@
+{
+  "solution": {
+    "path": "StationCountdown.sln",
+    "projects": [
+      "src\\StationCountdown.Core\\StationCountdown.Core.csproj",
+      "src\\StationCountdown.Importers\\StationCountdown.Importers.csproj",
+      "tests\\StationCountdown.Core.Tests\\StationCountdown.Core.Tests.csproj",
+      "tests\\StationCountdown.Importers.Tests\\StationCountdown.Importers.Tests.csproj",
+      "tools\\TimetableCheck\\TimetableCheck.csproj",
+      "tools\\TrimProbe\\TrimProbe.csproj"
+    ]
+  }
+}

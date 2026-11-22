@@ -1,6 +1,7 @@
 using Microsoft.CommandPalette.Extensions;
 using Microsoft.CommandPalette.Extensions.Toolkit;
 using StationCountdown.Core.Model;
+using StationCountdown.Core.Timetables;
 using StationCountdown.Extension.Pages.Forms;
 using StationCountdown.Extension.Services;
 #if !NO_IMPORTERS
@@ -14,6 +15,10 @@ internal sealed class StationActions
 {
     private const string FolderGlyph = "";   // FolderOpen
     private const string LogGlyph = "";      // ReportDocument
+    private const string CopyGlyph = "\uE8C8";   // Copy
+
+    // 駅を指定しない版。駅を追加する前でも使えるように、駅一覧の末尾に置く（中身は変わらないので 1 回だけ作る）。
+    private static readonly string GenericAiPrompt = AiTimetablePrompt.Build(null);
 
     private readonly StationStore _store;
     private readonly AddFileStationPage _addFile;
@@ -36,13 +41,15 @@ internal sealed class StationActions
     }
 #endif
 
-    /// <summary>駅一覧の行の右クリックのメニュー（編集・削除・再取得）。</summary>
+    /// <summary>駅一覧の行の右クリックのメニュー（編集・削除・再取得・時刻表の要約・AI 用のプロンプト）。</summary>
     public IContextItem[] ForStation(StationConfig station) =>
     [
         new CommandContextItem(new EditStationPage(station.Id, _store)),
         new CommandContextItem(new DeleteStationCommand(station, _store)) { IsCritical = true },
         .. Refresh(station),
         .. OpenTimetable(station),
+        .. Summary(station),
+        .. CopyAiPrompt(station),
         OpenSettingsFolder(),
     ];
 
@@ -61,6 +68,12 @@ internal sealed class StationActions
         new ListItem(_addHankyu) { Title = "＋ 阪急の駅を追加", Subtitle = "公式サイトの駅ページから時刻表を取り込む", Icon = new IconInfo("") },
 #endif
         new ListItem(_addFile) { Title = "＋ ファイルで駅を追加", Subtitle = "自分で用意した時刻表の YAML ファイルを使う", Icon = new IconInfo("") },
+        new ListItem(new CopyTextCommand(GenericAiPrompt) { Name = "コピー" })
+        {
+            Title = "AI 用のプロンプトをコピー",
+            Subtitle = "PDF やウェブページの時刻表から、AI で時刻表ファイルを作る（クリップボードに写すだけ）",
+            Icon = new IconInfo(CopyGlyph),
+        },
         new ListItem(new OpenUrlCommand(AppPaths.Root) { Name = "開く" })
         {
             Title = "設定フォルダを開く",
@@ -95,6 +108,23 @@ internal sealed class StationActions
     {
         if (_store.GetTimetable(station.Id) is not null || _store.GetTimetableErrors(station.Id).Count > 0)
             yield return new CommandContextItem(new OpenUrlCommand(AppPaths.TimetablePath(station.Id)) { Name = "時刻表ファイルを開く" });
+    }
+
+    /// <summary>時刻表が読めていれば「時刻表の要約」（元の時刻表と見比べる用）。</summary>
+    private IEnumerable<IContextItem> Summary(StationConfig station)
+    {
+        if (_store.GetTimetable(station.Id) is not null)
+            yield return new CommandContextItem(new TimetableSummaryPage(station.Id, _store));
+    }
+
+    /// <summary>
+    /// file 型の駅だけ「AI 用のプロンプトをコピー」。クリップボードに写すだけで、AI のサービスへは何も送らない。
+    /// 時刻表を AI に渡すかどうかは、利用者が判断する。
+    /// </summary>
+    private static IEnumerable<IContextItem> CopyAiPrompt(StationConfig station)
+    {
+        if (station.Source.Type == SourceType.File)
+            yield return new CommandContextItem(new CopyTextCommand(AiTimetablePrompt.Build(station)) { Name = "AI 用のプロンプトをコピー" });
     }
 
     private static CommandContextItem OpenSettingsFolder()

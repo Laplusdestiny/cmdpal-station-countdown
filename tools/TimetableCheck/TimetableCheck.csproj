@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    時刻表ファイル（timetables/{id}.yaml）の検証と、AI 用のプロンプトの出力。OS に依存しない。
+    AI エージェントが時刻表を書き写しながら使う（docs/ai-timetable-prompt.md）。
+    使い方は Program.cs の先頭と、引数なしで実行したときの表示を参照。
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\StationCountdown.Core\StationCountdown.Core.csproj" />
+  </ItemGroup>
+
+</Project>

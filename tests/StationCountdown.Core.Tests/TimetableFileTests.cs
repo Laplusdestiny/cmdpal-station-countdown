@@ -58,6 +58,94 @@ public class TimetableFileTests
 
         Assert.True(r.Ok, string.Join("\n", r.Errors));
         Assert.Equal([300, 320, 1450], r.Value!.Services[DayType.Weekday].Select(d => d.Minutes));
+        // 並べ替えて読み込むが、書いた順の崩れは警告する（AI で作ったファイルの誤りに気づけるように）。
+        Assert.Equal([6, 7], r.Warnings.Select(w => w.Line));
+    }
+
+    [Fact]
+    public void Parse_has_no_warnings_for_valid_file()
+    {
+        var r = TimetableFile.Parse(Valid, Id);
+
+        Assert.True(r.Ok, string.Join("\n", r.Errors));
+        Assert.Empty(r.Warnings);
+    }
+
+    [Fact]
+    public void Parse_warns_about_times_before_3am()
+    {
+        // 終電の 24:10 を 00:10 と書いた誤り。営業日は 3:00 で切り替わるので、カウントダウンに出なくなる。
+        var yaml = "schemaVersion: 1\n"
+                 + "stationId: kakuu-kita\n"
+                 + "services:\n"
+                 + "  weekday:\n"
+                 + "    - 05:00 普通 架空台\n"
+                 + "    - 23:50 普通 架空台\n"
+                 + "    - 00:10 普通 架空町\n";
+
+        var r = TimetableFile.Parse(yaml, Id);
+
+        Assert.True(r.Ok, string.Join("\n", r.Errors));
+        var warning = Assert.Single(r.Warnings);
+        Assert.Equal(7, warning.Line);
+        Assert.Contains("24:10", warning.Message);
+    }
+
+    [Fact]
+    public void Parse_warns_about_out_of_order_line()
+    {
+        var yaml = "schemaVersion: 1\n"
+                 + "stationId: kakuu-kita\n"
+                 + "services:\n"
+                 + "  weekday:\n"
+                 + "    - 05:00 普通 架空台\n"
+                 + "    - 06:10 普通 架空台\n"
+                 + "    - 06:01 普通 架空台\n"
+                 + "    - 06:20 普通 架空台\n";
+
+        var r = TimetableFile.Parse(yaml, Id);
+
+        Assert.True(r.Ok, string.Join("\n", r.Errors));
+        var warning = Assert.Single(r.Warnings);
+        Assert.Equal(7, warning.Line);
+        Assert.Contains("06:10", warning.Message);
+    }
+
+    [Fact]
+    public void Parse_allows_trains_at_same_time()
+    {
+        var yaml = """
+            schemaVersion: 1
+            stationId: kakuu-kita
+            services:
+              weekday:
+                - 05:00 普通 架空台
+                - 05:00 急行 架空町
+            """;
+
+        var r = TimetableFile.Parse(yaml, Id);
+
+        Assert.True(r.Ok, string.Join("\n", r.Errors));
+        Assert.Empty(r.Warnings);
+    }
+
+    [Fact]
+    public void Parse_warns_about_duplicate_line()
+    {
+        var yaml = "schemaVersion: 1\n"
+                 + "stationId: kakuu-kita\n"
+                 + "services:\n"
+                 + "  weekday:\n"
+                 + "    - 05:00 普通 架空台\n"
+                 + "    - 05:00 普通 架空台\n"
+                 + "  saturdayHoliday:\n"
+                 + "    - 05:00 普通 架空台\n";
+
+        var r = TimetableFile.Parse(yaml, Id);
+
+        Assert.True(r.Ok, string.Join("\n", r.Errors));
+        var warning = Assert.Single(r.Warnings);
+        Assert.Equal(6, warning.Line);
     }
 
     [Fact]

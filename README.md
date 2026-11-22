@@ -32,10 +32,28 @@ Command Palette で「駅カウントダウン」を開き、末尾のコマン�
 | --- | --- |
 | ＋ 阪急の駅を追加 | 阪急公式サイトの駅ページの URL（例: `https://www.hankyu.co.jp/station/okamachi.html`）を入れると、路線・方面を選べます。保存すると、この PC 上で時刻表を取得します（以降は 7 日ごとに自動で再取得） |
 | ＋ ファイルで駅を追加 | 自分で用意した時刻表の YAML ファイルを使います。保存すると、書き方の例を置いたフォルダが開きます |
+| AI 用のプロンプトをコピー | 時刻表ファイルを AI で作るためのプロンプトを、クリップボードに写します（下の「AI で時刻表を作る」） |
 
 追加した駅は、Dock の編集モードでバンドとしてピン留めできます。バンドをクリックすると、その駅の発車一覧が開きます。
-右クリックで「時刻表を再取得」（阪急の駅）・「駅を編集」・「設定フォルダを開く」ができます。
+右クリックで「時刻表を再取得」（阪急の駅）・「駅を編集」・「時刻表の要約」・「設定フォルダを開く」ができます。
 「駅を編集」では、表示する種別を選べます（時刻表を取得したあとに、時刻表に出てくる種別から選びます。何も選ばないとすべて表示）。降りる駅に止まらない種別を出さないときに使います。
+
+### AI で時刻表を作る
+
+阪急以外の駅は、PDF やウェブページの時刻表を AI（チャットの AI や、Claude Code などのエージェント）に渡して、時刻表ファイルを作れます。
+
+> **注意:** 時刻表の著作権は、鉄道事業者などにあります。取得元によっては、時刻表の複製・変換や、AI のサービスへの送信を、規約で禁じています。使う前に、取得元の規約を確認してください。時刻表を AI に渡すかどうかは、利用者の判断です。この拡張機能が、時刻表を AI のサービスへ送ることはありません。
+
+1. 「＋ ファイルで駅を追加」で駅を追加する
+2. プロンプトをコピーする。「駅カウントダウン」の末尾の「AI 用のプロンプトをコピー」は駅を指定しない版で、駅の ID は AI が確認します。駅一覧で駅を右クリックして「AI 用のプロンプトをコピー」を選ぶと、その駅の ID・名前・方面が入った版が写ります
+3. AI にプロンプトを貼り、時刻表（PDF、ウェブページのスクリーンショットか本文）を渡す。日付を選んで表示する時刻表では、平日と日曜・祝日の日付の画面を 1 つずつ渡し、どの日付かを書き添える
+4. 出てきた YAML を `timetables\{ID}.yaml` に保存する
+5. AI が出した「時間帯ごとの本数」の表を、元の時刻表と見比べる。駅を右クリックして「時刻表の要約」を開くと、読み込んだ時刻表の本数も確かめられます
+
+誤りが疑われる行（0〜2 時台の時刻、並び順の崩れ、同じ行の重複）があると、「駅カウントダウン」の先頭に「時刻表の警告」が出ます（読み込みは止まりません）。
+
+- 拡張機能を入れていなくても、[`docs/ai-timetable-prompt.md`](docs/ai-timetable-prompt.md)（駅を指定しない版）をそのまま AI に渡して使えます
+- コマンドを実行できる AI エージェントには、このリポジトリで `dotnet run --project tools/TimetableCheck -- check <ファイル>` を実行させると、エラーと警告がなくなるまで自分で直させられます（終了コード: 0 = 問題なし、1 = エラー、2 = 警告だけ）
 
 ### 設定ファイル
 
@@ -95,6 +113,8 @@ services:
 | 対象 | 方法 |
 | --- | --- |
 | Core / Importers のテスト（Windows・Linux） | `dotnet test --project tests/StationCountdown.Core.Tests`（Importers も同様）。.NET 10 SDK が必要 |
+| 時刻表ファイルの検証（Windows・Linux） | `dotnet run --project tools/TimetableCheck -- check <ファイル>`。`-- prompt --out docs/ai-timetable-prompt.md` で、AI 用のプロンプトの写しを作り直す（`AiTimetablePrompt.cs` を変えたとき。テストで食い違いを検出します） |
+| GitHub Codespaces / Dev Container | [`.devcontainer/devcontainer.json`](.devcontainer/devcontainer.json) で開くと .NET 10 SDK 入りの Linux 環境になり、上の 2 つ（テスト・時刻表の検証）ができる。拡張機能は Windows 専用なのでビルドできない（C# Dev Kit は拡張機能を除いた `StationCountdown.CrossPlatform.slnf` を読み込む） |
 | 拡張機能（Windows） | VS Code のタスク「Extension: ビルドして Command Palette に登録」、または `tools\windows\Build-Extension.ps1 -Register`。Visual Studio と Windows SDK は不要で、.NET 10 SDK と Windows の開発者モードが必要 |
 | 拡張機能（WSL から） | `bash tools/windows/build-from-wsl.sh -Register`（Windows のローカルフォルダーに写してから上の ps1 を実行する） |
 | 拡張機能（Visual Studio） | `StationCountdown.sln` を開き、`x64` で `StationCountdown.Extension` を「配置」 |

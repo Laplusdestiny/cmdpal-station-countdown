@@ -59,7 +59,8 @@ internal sealed partial class AddFileStationForm(StationStore store) : FormConte
 
         return CommandResult.ShowToast(new ToastArgs
         {
-            Message = $"時刻表ファイルを {AppPaths.TimetablePath(station.Id)} に置いてください（例: {Path.GetFileName(ExamplePath(station))}）。表示する種別は「駅を編集」で選べます。",
+            Message = $"時刻表ファイルを {AppPaths.TimetablePath(station.Id)} に置いてください（例: {Path.GetFileName(ExamplePath(station))}）。"
+                + "駅を右クリックして「AI 用のプロンプトをコピー」を使うと、PDF やウェブページの時刻表から AI で作れます。表示する種別は「駅を編集」で選べます。",
             Result = CommandResult.GoHome(),
         });
     }
@@ -80,6 +81,8 @@ internal sealed partial class AddFileStationForm(StationStore store) : FormConte
             # - 1 本を 1 行で「HH:MM 種別 行先」と書く（半角スペースで区切る。全角スペースやタブは使えない）
             # - 0 時台以降の終電は 24:10 のように 24 時以降で書く（29:59 まで）
             # - ダイヤは weekday / saturday / holiday / saturdayHoliday（土曜・休日）のうち、必要なものだけ書く
+            # - PDF やウェブページの時刻表から AI で作るときは、駅カウントダウンで駅を右クリックして
+            #   「AI 用のプロンプトをコピー」を使う（時刻表を AI に渡す前に、取得元の規約を確認する）
             schemaVersion: 1
             stationId: {station.Id}
             services:

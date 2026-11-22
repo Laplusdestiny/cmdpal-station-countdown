@@ -66,6 +66,18 @@ internal sealed partial class StationsPage : ListPage
                     Icon = new IconInfo(WarningGlyph),
                 });
             }
+
+            // 読み込めたが誤りが疑われる行。AI で作った時刻表で起きやすい（0 時台の書き方、行の抜けや重複）。
+            foreach (var warning in _store.GetTimetableWarnings(station.Id))
+            {
+                items.Add(new ListItem(new OpenUrlCommand(AppPaths.TimetablePath(station.Id)) { Name = "時刻表ファイルを開く" })
+                {
+                    Title = string.Create(CultureInfo.InvariantCulture, $"時刻表の警告: {station.Name} {station.DirectionLabel}（{warning.Line} 行目）"),
+                    Subtitle = warning.Message,
+                    Icon = new IconInfo(WarningGlyph),
+                    MoreCommands = [new CommandContextItem(new TimetableSummaryPage(station.Id, _store))],
+                });
+            }
         }
 
         foreach (var station in _store.Current.Stations)

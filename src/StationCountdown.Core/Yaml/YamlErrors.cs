@@ -9,4 +9,7 @@ public sealed record ConfigError(int Line, string Message)
 public sealed record LoadResult<T>(T? Value, IReadOnlyList<ConfigError> Errors)
 {
     public bool Ok => Errors.Count == 0 && Value is not null;
+
+    /// <summary>読み込みは止めないが、利用者に知らせたい誤りの疑い（並び順の崩れなど）。</summary>
+    public IReadOnlyList<ConfigError> Warnings { get; init; } = [];
 }
