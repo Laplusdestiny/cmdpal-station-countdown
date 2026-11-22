@@ -1,0 +1,62 @@
+// GitHub Codespaces / Docker（VS Code の Dev Containers）で開発するための設定。
+//
+// コンテナーは Linux なので、ここでできるのは Core / Importers / tools（TimetableCheck・TrimProbe）の
+// ビルドとテストまで。拡張機能（StationCountdown.Extension）は Windows 専用で、ビルド・登録は Windows か
+// WSL から行う（README の「ビルドと配置」）。C# Dev Kit が拡張機能を読み込んでエラーを出さないよう、
+// 拡張機能を除いたソリューションフィルター（StationCountdown.CrossPlatform.slnf）を既定にしている。
+//
+// Claude Code（claude コマンドと VS Code 拡張機能）も入れる。ログイン情報や設定は名前付きボリュームに置き、
+// コンテナーを作り直しても残るようにする（https://code.claude.com/docs/en/devcontainer）。
+// プロジェクトのスキル・フック（.claude/）は APM で入れる（post-create.sh）。
+{
+  "name": "Station Countdown (.NET 10, Linux)",
+  // SDK のバージョンは global.json（10.0.100、rollForward: latestFeature）を満たせばよい
+  "image": "mcr.microsoft.com/devcontainers/dotnet:10.0",
+
+  "features": {
+    // PR や Actions の確認用（イメージに gh は入っていない）
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    // Claude Code は npm で入るので Node が要る。入れないと Claude Code の feature が古い Node 18 を入れる
+    "ghcr.io/devcontainers/features/node:1": { "version": "lts" },
+    // 常に最新の Claude Code を入れる（自動更新も有効のまま）
+    "ghcr.io/anthropics/devcontainer-features/claude-code:1": {}
+  },
+
+  "mounts": [
+    // ~/.claude（ログイン情報・設定・会話の履歴）。リポジトリごとに分ける
+    "source=claude-code-config-${devcontainerId},target=/home/vscode/.claude,type=volume"
+  ],
+
+  "containerEnv": {
+    // CI（.github/workflows/ci.yml）と同じ
+    "DOTNET_NOLOGO": "true",
+    "DOTNET_CLI_TELEMETRY_OPTOUT": "true",
+    // ~/.claude.json（アカウント・プロジェクトの信頼）もボリュームの中に置かせる。ないと作り直すたびに初期設定からになる
+    "CLAUDE_CONFIG_DIR": "/home/vscode/.claude"
+  },
+
+  // APM（post-create.sh が ~/.local/bin に入れる）を、ターミナルでも Claude Code からも使えるようにする
+  "remoteEnv": {
+    "PATH": "/home/vscode/.local/bin:${containerEnv:PATH}"
+  },
+
+  // 設定のボリュームの持ち主の修正、dotnet restore、APM とプロジェクトのスキル（.claude/）のインストール
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-dotnettools.csdevkit",
+        "ms-dotnettools.csharp",
+        // feature も入れるが、ここにも書いて入ることを明示する
+        "anthropic.claude-code"
+      ],
+      "settings": {
+        "dotnet.defaultSolution": "StationCountdown.CrossPlatform.slnf"
+      }
+    },
+    "codespaces": {
+      "openFiles": ["README.md"]
+    }
+  }
+}

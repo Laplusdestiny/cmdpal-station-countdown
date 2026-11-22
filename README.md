@@ -111,6 +111,7 @@ services:
 | --- | --- |
 | Core / Importers のテスト（Windows・Linux） | `dotnet test --project tests/StationCountdown.Core.Tests`（Importers も同様）。.NET 10 SDK が必要 |
 | 時刻表ファイルの検証（Windows・Linux） | `dotnet run --project tools/TimetableCheck -- check <ファイル>`。`-- prompt --out docs/ai-timetable-prompt.md` で、AI 用のプロンプトの写しを作り直す（`AiTimetablePrompt.cs` を変えたとき。テストで食い違いを検出します） |
+| GitHub Codespaces / Dev Container | [`.devcontainer/devcontainer.json`](.devcontainer/devcontainer.json) で開くと .NET 10 SDK 入りの Linux 環境になり、上の 2 つ（テスト・時刻表の検証）ができる。拡張機能は Windows 専用なのでビルドできない（C# Dev Kit は拡張機能を除いた `StationCountdown.CrossPlatform.slnf` を読み込む） |
 | 拡張機能（Windows） | VS Code のタスク「Extension: ビルドして Command Palette に登録」、または `tools\windows\Build-Extension.ps1 -Register`。Visual Studio と Windows SDK は不要で、.NET 10 SDK と Windows の開発者モードが必要 |
 | 拡張機能（WSL から） | `bash tools/windows/build-from-wsl.sh -Register`（Windows のローカルフォルダーに写してから上の ps1 を実行する） |
 | 拡張機能（Visual Studio） | `StationCountdown.sln` を開き、`x64` で `StationCountdown.Extension` を「配置」 |
