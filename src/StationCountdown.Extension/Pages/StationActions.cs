@@ -15,6 +15,10 @@ internal sealed class StationActions
 {
     private const string FolderGlyph = "";   // FolderOpen
     private const string LogGlyph = "";      // ReportDocument
+    private const string CopyGlyph = "\uE8C8";   // Copy
+
+    // 駅を指定しない版。駅を追加する前でも使えるように、駅一覧の末尾に置く（中身は変わらないので 1 回だけ作る）。
+    private static readonly string GenericAiPrompt = AiTimetablePrompt.Build(null);
 
     private readonly StationStore _store;
     private readonly AddFileStationPage _addFile;
@@ -64,6 +68,12 @@ internal sealed class StationActions
         new ListItem(_addHankyu) { Title = "＋ 阪急の駅を追加", Subtitle = "公式サイトの駅ページから時刻表を取り込む", Icon = new IconInfo("") },
 #endif
         new ListItem(_addFile) { Title = "＋ ファイルで駅を追加", Subtitle = "自分で用意した時刻表の YAML ファイルを使う", Icon = new IconInfo("") },
+        new ListItem(new CopyTextCommand(GenericAiPrompt) { Name = "コピー" })
+        {
+            Title = "AI 用のプロンプトをコピー",
+            Subtitle = "PDF やウェブページの時刻表から、AI で時刻表ファイルを作る（クリップボードに写すだけ）",
+            Icon = new IconInfo(CopyGlyph),
+        },
         new ListItem(new OpenUrlCommand(AppPaths.Root) { Name = "開く" })
         {
             Title = "設定フォルダを開く",
