@@ -6,7 +6,7 @@
     <RootNamespace>StationCountdown.Extension</RootNamespace>
     <AssemblyName>StationCountdown.Extension</AssemblyName>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <Version>0.1.0</Version>
+    <Version>0.2.0</Version>
 
     <WindowsSdkPackageVersion>10.0.26100.68-preview</WindowsSdkPackageVersion>
     <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
