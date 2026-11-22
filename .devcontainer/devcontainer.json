@@ -7,6 +7,7 @@
 //
 // Claude Code（claude コマンドと VS Code 拡張機能）も入れる。ログイン情報や設定は名前付きボリュームに置き、
 // コンテナーを作り直しても残るようにする（https://code.claude.com/docs/en/devcontainer）。
+// プロジェクトのスキル・フック（.claude/）は APM で入れる（post-create.sh）。
 {
   "name": "Station Countdown (.NET 10, Linux)",
   // SDK のバージョンは global.json（10.0.100、rollForward: latestFeature）を満たせばよい
@@ -34,8 +35,13 @@
     "CLAUDE_CONFIG_DIR": "/home/vscode/.claude"
   },
 
-  // 新しいボリュームは root の持ち物になるので、vscode ユーザーが書けるようにしてから restore する
-  "postCreateCommand": "sudo chown vscode:vscode /home/vscode/.claude && dotnet restore StationCountdown.CrossPlatform.slnf",
+  // APM（post-create.sh が ~/.local/bin に入れる）を、ターミナルでも Claude Code からも使えるようにする
+  "remoteEnv": {
+    "PATH": "/home/vscode/.local/bin:${containerEnv:PATH}"
+  },
+
+  // 設定のボリュームの持ち主の修正、dotnet restore、APM とプロジェクトのスキル（.claude/）のインストール
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
 
   "customizations": {
     "vscode": {

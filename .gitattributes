@@ -3,3 +3,6 @@ src/StationCountdown.Extension/Assets/syukujitsu.csv -text
 
 # Windows の cmd.exe で確実に動くよう、.cmd は CRLF にする
 *.cmd text eol=crlf
+
+# Linux（WSL・Dev Container）の bash で動かすので、.sh は LF にする
+*.sh text eol=lf
