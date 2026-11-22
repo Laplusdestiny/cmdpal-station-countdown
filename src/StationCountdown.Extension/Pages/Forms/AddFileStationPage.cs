@@ -60,7 +60,7 @@ internal sealed partial class AddFileStationForm(StationStore store) : FormConte
         return CommandResult.ShowToast(new ToastArgs
         {
             Message = $"時刻表ファイルを {AppPaths.TimetablePath(station.Id)} に置いてください（例: {Path.GetFileName(ExamplePath(station))}）。"
-                + "駅を右クリックして「AI 用のプロンプトをコピー」を使うと、PDF やウェブページの時刻表から AI で作れます",
+                + "駅を右クリックして「AI 用のプロンプトをコピー」を使うと、PDF やウェブページの時刻表から AI で作れます。表示する種別は「駅を編集」で選べます。",
             Result = CommandResult.GoHome(),
         });
     }

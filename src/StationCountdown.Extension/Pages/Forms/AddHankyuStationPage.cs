@@ -156,7 +156,7 @@ internal sealed partial class AddHankyuStationForm : FormContent
         {
             var ok = await _scheduler.RefreshNowAsync(station.Id).ConfigureAwait(false);
             new ToastStatusMessage(ok
-                ? $"{station.Name} {station.DirectionLabel} の時刻表を取得しました。"
+                ? $"{station.Name} {station.DirectionLabel} の時刻表を取得しました。表示する種別は「駅を編集」で選べます。"
                 : $"{station.Name} {station.DirectionLabel} の時刻表を取得できませんでした。あとで自動で再試行します。").Show();
         });
 
